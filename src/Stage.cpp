@@ -90,9 +90,9 @@ void Stage::update()
     int dirX = 0;
     int dirY = 0;
 
-    if (!jsLeft.getState())
+    if (!jsLeft.getState() && xAxis.getSteps() < maxX)
         dirX = 1;
-    if (!jsUp.getState())
+    if (!jsUp.getState()   && yAxis.getSteps() < maxY)
         dirY = 1;
     if (!jsRight.getState() && xLimit.getState())
         dirX = -1;
@@ -101,8 +101,6 @@ void Stage::update()
 
     updateVelocities(delta, dirX, dirY);
     
-    std::cout << xVel << ", " << yVel << std::endl;
-        
     xAxis.setVelocity(xVel);
     yAxis.setVelocity(yVel);
 

@@ -70,7 +70,7 @@ void Stepper::update()
         pulState = !pulState;
         digitalWrite(pulPin, pulState);
         if (pulState) {
-            int sign = dirState ? -1 : 1;
+            int sign = dirState ? 1 : -1;
             steps += sign;
         }
         pulseDelta -= pulseSpacing;

@@ -67,6 +67,9 @@ int main()
     stage.home(3*STEPPER_SPEED);
     
     while (true) {
+        std::vector<long> pos = stage.getPosition();
+        std::cout << pos[0] << ", " << pos[1] << std::endl;
+        
         stage.update();
     }
     return 0;
