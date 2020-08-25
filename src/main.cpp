@@ -15,13 +15,15 @@ extern "C" {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define JS_LEFT_PIN 23
-#define JS_UP_PIN 22
+#define JS_UP_PIN 24
 #define JS_RIGHT_PIN 25
-#define JS_DOWN_PIN 24
+#define JS_DOWN_PIN 22
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define STEPPER_PPR 400
+#define STEPPER_SPEED 3
+#define STEPPER_ACCEL 15
 
 #define PUL_X_PIN 30
 #define DIR_X_PIN 21
@@ -38,8 +40,6 @@ extern "C" {
 #define MAX_STEPS_Y 2000
 
 #define BUTTON_DEBOUNCE_TIME 0.1
-
-const double speed = 3;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -62,9 +62,9 @@ int main()
                 LIMIT_X_PIN, LIMIT_Y_PIN,
                 BUTTON_DEBOUNCE_TIME,
                 limits,
-                speed);
+                STEPPER_SPEED, STEPPER_ACCEL);
 
-    stage.home(3*speed);
+    stage.home(3*STEPPER_SPEED);
     
     while (true) {
         stage.update();

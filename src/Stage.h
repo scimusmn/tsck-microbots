@@ -2,6 +2,7 @@
 #define SMM_STAGE_H
 
 #include <vector>
+#include <chrono>
 
 #include "Stepper.h"
 #include "Button.h"
@@ -19,7 +20,7 @@ class Stage
           unsigned int limitY,
           double buttonDebounceTime,
           long limits[4],
-          double speed);
+          double speed, double acceleration);
 
     void home(double homeSpeed);
     
@@ -28,11 +29,17 @@ class Stage
     void update();
 
  private:
-    double speed;
+    double speed, acceleration;
+    double xVel, yVel;
     long minX, minY, maxX, maxY;
     Button jsLeft, jsUp, jsRight, jsDown;
     Button xLimit, yLimit;
     Stepper xAxis, yAxis;
+
+    void updateVelocities(std::chrono::duration<double> delta,
+                          int dirX, int dirY);                          
+
+    std::chrono::time_point<std::chrono::steady_clock> prevTime;
 };
     
 #endif

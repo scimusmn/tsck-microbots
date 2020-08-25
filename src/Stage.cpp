@@ -14,19 +14,24 @@ Stage::Stage(unsigned int pulX,
              unsigned int limitY,
              double buttonDebounceTime,
              long limits[4],
-             double angularVelocity)
+             double angularVelocity,
+             double acceleration)
     : xAxis(pulX, dirX, stepsPerRevolution),
       yAxis(pulY, dirY, stepsPerRevolution),
       jsLeft (jsPins[0], buttonDebounceTime, nullptr),
       jsUp   (jsPins[1], buttonDebounceTime, nullptr),
-      jsDown (jsPins[2], buttonDebounceTime, nullptr),
-      jsRight(jsPins[3], buttonDebounceTime, nullptr),
+      jsRight(jsPins[2], buttonDebounceTime, nullptr),
+      jsDown (jsPins[3], buttonDebounceTime, nullptr),
       xLimit(limitX, buttonDebounceTime, nullptr),
       yLimit(limitY, buttonDebounceTime, nullptr),
       minX(limits[0]), minY(limits[1]),
       maxX(limits[2]), maxY(limits[3]),
-      speed(angularVelocity)
-{}
+      speed(angularVelocity),
+      acceleration(acceleration),
+      xVel(0), yVel(0)
+{
+    prevTime = std::chrono::steady_clock::now();
+}
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -35,8 +40,8 @@ void Stage::home(double homeSpeed)
     bool xHome = false;
     bool yHome = false;
 
-    xAxis.setVelocity(homeSpeed);
-    yAxis.setVelocity(homeSpeed);
+    xAxis.setVelocity(-homeSpeed);
+    yAxis.setVelocity(-homeSpeed);
     
     while(!(xHome && yHome)) {
         xLimit.update(); yLimit.update();
@@ -71,6 +76,9 @@ std::vector<long> Stage::getPosition()
 
 void Stage::update()
 {
+    std::chrono::duration<double> delta = std::chrono::steady_clock::now() - prevTime;
+    prevTime = std::chrono::steady_clock::now();
+    
     jsLeft.update();
     jsUp.update();
     jsRight.update();
@@ -83,18 +91,16 @@ void Stage::update()
     int dirY = 0;
 
     if (!jsLeft.getState())
-        dirX = -1;
+        dirX = 1;
     if (!jsUp.getState())
         dirY = 1;
-    if (!jsRight.getState())
-        dirX = 1;
-    if (!jsDown.getState())
+    if (!jsRight.getState() && xLimit.getState())
+        dirX = -1;
+    if (!jsDown.getState() && yLimit.getState())
         dirY = -1;
 
-    double normalization = 1/sqrt(dirX*dirX + dirY*dirY);
-    double xVel = speed * dirX * normalization;
-    double yVel = speed * dirY * normalization;
-
+    updateVelocities(delta, dirX, dirY);
+    
     std::cout << xVel << ", " << yVel << std::endl;
         
     xAxis.setVelocity(xVel);
@@ -102,3 +108,38 @@ void Stage::update()
 
     xAxis.update(); yAxis.update();
 }
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void Stage::updateVelocities(std::chrono::duration<double> delta,
+                             int dirX, int dirY)
+{
+    double normalization;
+    if (dirX == 0 && dirY == 0)
+        normalization = 0;
+    else
+        normalization = 1/sqrt(dirX*dirX + dirY*dirY);
+    
+    double xVelTarget = speed * dirX * normalization;
+    double yVelTarget = speed * dirY * normalization;
+
+    double step = acceleration * delta.count();
+    
+    int sign = xVelTarget - xVel > 0 ? 1 : -1;
+    double diff = xVelTarget - xVel;
+    diff = diff > 0 ? diff : -diff;
+    if (diff < step)
+        xVel = xVelTarget;
+    else
+        xVel += sign * step;
+
+    sign = yVelTarget - yVel > 0 ? 1 : -1;
+    diff = yVelTarget - yVel;
+    diff = diff > 0 ? diff : -diff;
+    if (diff < step)
+        yVel = yVelTarget;
+    else
+        yVel += sign * step;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
