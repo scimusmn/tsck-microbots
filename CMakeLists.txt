@@ -10,4 +10,4 @@ add_executable(microbots
   src/Stage.cpp
   src/main.cpp)
 
-target_link_libraries(microbots wiringPi)
+target_link_libraries(microbots wiringPi sfml-graphics)
