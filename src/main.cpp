@@ -41,7 +41,7 @@ extern "C" {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u position);
+bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u& position);
 sf::Vector2u getPosition(sf::Image& path, Stage& stage);
 bool positionIsOnPath(sf::Image& path, sf::Vector2u position);
 std::vector<long> pathPosToStage(sf::Image& path, sf::Vector2u position);
@@ -80,8 +80,12 @@ int main()
 	    endPosition.x << ", " << endPosition.y << ")" << std::endl;
     }
 
-    std::cout << "Start: (" << startPosition.x << ", " << startPosition.y << ")" << std::endl;
-    std::cout << "End: (" << endPosition.x << ", " << endPosition.y << ")" << std::endl;
+    std::cout << "Start: ("
+	      << startPosition.x << ", " << startPosition.y
+	      << ")" << std::endl;
+    std::cout << "End: ("
+	      << endPosition.x << ", " << endPosition.y
+	      << ")" << std::endl;
 
     wiringPiSetup();
 
@@ -123,18 +127,17 @@ int main()
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u position)
+bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u& position)
 {
     sf::Vector2u size = path.getSize();
 
-    sf::Vector2u result;
-
-    for (result.x = 0; result.x < size.x; result.x++) {
-	for (result.y = 0; result.y < size.y; result.y++) {
-	    sf::Color pixel = path.getPixel(result.x, result.y);
+    for (position.x = 0; position.x < size.x; position.x++) {
+	for (position.y = 0; position.y < size.y; position.y++) {
+	    sf::Color pixel = path.getPixel(position.x, position.y);
 	    if ((pixel.r == color.r) &&
 		(pixel.g == color.g) &&
 		(pixel.b == color.b)) {
+		std::cout << position.x << " " << position.y << std::endl;
 		return true;
 	    }
 	}
