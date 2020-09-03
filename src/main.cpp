@@ -1,5 +1,5 @@
 #include <SFML/Graphics.hpp>
-//#include <SFML/Audio.hpp>
+#include <SFML/Audio.hpp>
 
 #include <iostream>
 #include <cmath>
@@ -20,7 +20,7 @@ extern "C" {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define STEPPER_SPR 400  // steps per revolution
-#define STEPPER_SPEED 3  // radians per second
+#define STEPPER_SPEED 9  // radians per second
 #define STEPPER_ACCEL 15 // radians per second per second
 
 #define PUL_X_PIN 30
@@ -41,17 +41,47 @@ extern "C" {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-bool positionIsOnPath(sf::Image& path, Stage& stage);
+bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u position);
+sf::Vector2u getPosition(sf::Image& path, Stage& stage);
+bool positionIsOnPath(sf::Image& path, sf::Vector2u position);
+std::vector<long> pathPosToStage(sf::Image& path, sf::Vector2u position);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 int main()
 {
     sf::Image path;
-    if (!path.loadFromFile("path.jpg")) {
+    if (!path.loadFromFile("path.png")) {
         std::cerr << "ERROR: failed to load path image!" << std::endl;
         return 1;
     }
+
+    sf::SoundBuffer offPathBuffer;
+    if (!offPathBuffer.loadFromFile("off-path.wav")) {
+	std::cerr << "ERROR: failed to load off-path sound!" << std::endl;
+	return 2;
+    }
+    sf::Sound offPathSound(offPathBuffer);
+    offPathSound.setLoop(true);
+
+    sf::Vector2u startPosition;
+    sf::Vector2u endPosition;
+    sf::Color startColor(255,0,0);
+    sf::Color endColor(0,0,255);
+        
+    if (!findPosition(path, startColor, startPosition)) {
+	std::cerr << "WARNING: no start position found; defaulting to (0,0)" << std::endl;
+	startPosition.x = 0;
+	startPosition.y = 0;
+    }
+
+    if (!findPosition(path, endColor, endPosition)) {
+	std::cerr << "WARNING: no end position found; defaulting to (" <<
+	    endPosition.x << ", " << endPosition.y << ")" << std::endl;
+    }
+
+    std::cout << "Start: (" << startPosition.x << ", " << startPosition.y << ")" << std::endl;
+    std::cout << "End: (" << endPosition.x << ", " << endPosition.y << ")" << std::endl;
 
     wiringPiSetup();
 
@@ -67,18 +97,24 @@ int main()
                 limits,
                 STEPPER_SPEED, STEPPER_ACCEL);
 
-    stage.home(3*STEPPER_SPEED);
+    stage.home(STEPPER_SPEED);
 
     bool onPath = false;
+
+    std::vector<long> startStagePos = pathPosToStage(path, startPosition);
+    stage.moveToPosition(STEPPER_SPEED, startStagePos);
     
     while (true) {
         stage.update();
-        if (positionIsOnPath(path, stage) && !onPath) {
+	sf::Vector2u position = getPosition(path, stage);
+        if (positionIsOnPath(path, position) && !onPath) {
             onPath = true;
+	    offPathSound.stop();
             std::cout << "on path" << std::endl;
         }
-        else if (!positionIsOnPath(path, stage) && onPath) {
+        else if (!positionIsOnPath(path, position) && onPath) {
             onPath = false;
+	    offPathSound.play();
             std::cout << "off path" << std::endl;
         }
     }
@@ -87,7 +123,28 @@ int main()
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-bool positionIsOnPath(sf::Image& path, Stage& stage)
+bool findPosition(sf::Image& path, sf::Color color, sf::Vector2u position)
+{
+    sf::Vector2u size = path.getSize();
+
+    sf::Vector2u result;
+
+    for (result.x = 0; result.x < size.x; result.x++) {
+	for (result.y = 0; result.y < size.y; result.y++) {
+	    sf::Color pixel = path.getPixel(result.x, result.y);
+	    if ((pixel.r == color.r) &&
+		(pixel.g == color.g) &&
+		(pixel.b == color.b)) {
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+sf::Vector2u getPosition(sf::Image& path, Stage& stage)
 {
     sf::Vector2u size = path.getSize();
     
@@ -96,29 +153,55 @@ bool positionIsOnPath(sf::Image& path, Stage& stage)
     double fractionX = double(stagePosition[0]) / MAX_STEPS_X;
     double fractionY = double(stagePosition[1]) / MAX_STEPS_Y;
 
-    // clamp to [0,1]
+    // clamp to [0,1)
     fractionX = fractionX < 0 ? 0 : fractionX;
-    fractionX = fractionX > 1 ? 1 : fractionX;
+    fractionX = fractionX > 1 ? float(MAX_STEPS_X-1)/MAX_STEPS_X : fractionX;
 
     fractionY = fractionY < 0 ? 0 : fractionY;
-    fractionY = fractionY > 1 ? 1 : fractionY;
+    fractionY = fractionY > 1 ? float(MAX_STEPS_Y-1)/MAX_STEPS_Y : fractionY;
 
-    unsigned int pixelX = fractionX * size.x;
-    unsigned int pixelY = fractionY * size.y;
+    sf::Vector2u pathPosition;
+    pathPosition.x = fractionX * size.x;
+    pathPosition.y = fractionY * size.y;
 
-    sf::Color pixel = path.getPixel(pixelX, pixelY);
+    return pathPosition;
+}
 
-    //std::cout << "(" << fractionX << ", " << fractionY << "): "
-    //          << (int) pixel.r << " "
-    //          << (int) pixel.g << " "
-    //          << (int) pixel.b << std::endl;
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+bool positionIsOnPath(sf::Image& path, sf::Vector2u position)
+{
+    sf::Color pixel = path.getPixel(position.x, position.y);
+    if (pixel.r == 255 &&
+	pixel.g == 255 &&
+	pixel.b == 255)
+	return false;
+    return true;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+std::vector<long> pathPosToStage(sf::Image& path, sf::Vector2u position)
+{
+    sf::Vector2u size = path.getSize();
     
-    if ( pixel.r < 128 &&
-         pixel.g < 128 &&
-         pixel.b < 128 )
-        return true;
-    else
-        return false;
+    std::vector<long> result;
+    
+    double fractionX = double(position.x) / size.x;
+    double fractionY = double(position.y) / size.y;
+
+    // clamp to [0,1)
+    fractionX = fractionX < 0 ? 0 : fractionX;
+    fractionX = fractionX > 1 ? float(size.x-1)/size.x : fractionX;
+
+    fractionY = fractionY < 0 ? 0 : fractionY;
+    fractionY = fractionY > 1 ? float(size.y-1)/size.y : fractionY;
+
+    
+    result.push_back(fractionX * MAX_STEPS_X);
+    result.push_back(fractionY * MAX_STEPS_Y);
+
+    return result;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

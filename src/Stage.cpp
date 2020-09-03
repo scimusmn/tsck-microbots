@@ -64,6 +64,34 @@ void Stage::home(double homeSpeed)
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+void Stage::moveToPosition(double speed, std::vector<long> position)
+{
+    bool xArrived = false;
+    bool yArrived = false;
+
+    std::vector<long> currentPosition = getPosition();
+    
+    xAxis.setVelocity( currentPosition[0] < position[0] ? speed : -speed );
+    yAxis.setVelocity( currentPosition[1] < position[1] ? speed : -speed );
+
+    while (!(xArrived && yArrived)) {
+	xAxis.update(); yAxis.update();
+	currentPosition = getPosition();
+
+	if (currentPosition[0] == position[0]) {
+	    xArrived = true;
+	    xAxis.setVelocity(0);
+	}
+
+	if (currentPosition[1] == position[1]) {
+	    yArrived = true;
+	    yAxis.setVelocity(0);
+	}
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 std::vector<long> Stage::getPosition()
 {
     std::vector<long> pos;
