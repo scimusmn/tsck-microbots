@@ -23,6 +23,7 @@ class Stage
           double speed, double acceleration);
 
     void home(double homeSpeed);
+    void moveToPosition(double speed, std::vector<long> position);
     
     std::vector<long> getPosition();
 
