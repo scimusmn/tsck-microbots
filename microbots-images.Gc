@@ -1,0 +1,6 @@
+// Image - "smile.png" Size 32x32
+// Width  = 32
+// Height = 32
+// Usage: smile.png(x, y);
+#constant smile.png    $media_SetSector(0x0000, 0x0000); media_Image
+

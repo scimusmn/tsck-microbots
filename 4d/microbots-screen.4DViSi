@@ -1,0 +1,130 @@
+﻿Version     0.0
+Platform    uLCD-90DT-L
+PlatRes     480x800
+Depends
+end
+Options
+    Visualizer
+    Speed                        9600
+    Checksum                     No
+    ResponseSize                 2
+    Multidrop                    No
+    Destination                  0
+    DestBank                     0
+    MainForm                     0
+    SndBuf                       0
+    ButtonDisable                No
+    SignedDigits                 No
+    MaxString                    75
+    ComPort                      0
+    ComTX1pinIdx                 0
+    ComRX1pinIdx                 0
+    FileSystem                   FATfs
+    FlashEraseOption             Optimal
+    SPIenable                    0
+    SPIsdo                       3
+    SPIsdi                       2
+    SPIsck                       1
+    FlashGT16MB                  No
+end
+Form
+    Name                         Form1
+    Alias                        Form1
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         BackgroundGradient
+    Alias                        bg
+    Height                       480
+    Image                        gradient-bg.png
+    Left                         0
+    Source.Height                480
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 800
+    Top                          0
+    Width                        800
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+CustomDigits
+    Name                         minute1
+    Alias                        min1
+    Bitmap                       digits-1.bmp
+    Digits                       1
+    LeadingZero                  Yes
+    Left                         214
+    Top                          298
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+CustomDigits
+    Name                         minute2
+    Alias                        min2
+    Bitmap                       digits-2.bmp
+    Digits                       1
+    LeadingZero                  Yes
+    Left                         295
+    Top                          298
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+CustomDigits
+    Name                         second1
+    Alias                        sec1
+    Bitmap                       digits-3.bmp
+    Digits                       1
+    LeadingZero                  Yes
+    Left                         424
+    Top                          298
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+CustomDigits
+    Name                         second2
+    Alias                        sec2
+    Bitmap                       digits-4.bmp
+    Digits                       1
+    LeadingZero                  Yes
+    Left                         505
+    Top                          298
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image1
+    Alias                        Image1
+    Height                       120
+    Image                        heart.png
+    Left                         322
+    Source.Height                138
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 157
+    Top                          59
+    Width                        120
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
