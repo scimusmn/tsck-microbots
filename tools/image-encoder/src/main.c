@@ -6,6 +6,7 @@
 
 #include "options.h"
 
+uint16_t swap_endianness(uint16_t n);
 uint16_t * convert_image(char * filename, size_t *size);
 
 int main(int argc, char ** argv)
@@ -59,9 +60,9 @@ uint16_t * convert_image(char * filename, size_t *size)
 	}
 
 	/* create gci header */
-	gci[0] = width;
-	gci[1] = height;
-	gci[2] = 0x1000;
+	gci[0] = swap_endianness(width);
+	gci[1] = swap_endianness(height);
+	gci[2] = 0x0010;
 
 	/* convert pixels */
 	for (int i=0; i<width*height; i++) {
@@ -70,10 +71,18 @@ uint16_t * convert_image(char * filename, size_t *size)
 		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits */
 		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits */
 		p565 |= (pixel.b >> 3);       /* blue in final 5 bits */
-		gci[3+i] = p565;
+		gci[3+i] = swap_endianness(p565);
 	}
 
 	/* clean up */
 	stbi_image_free((unsigned char *)pixels);
 	return gci;
+}
+
+uint16_t swap_endianness(uint16_t n)
+{
+	uint16_t swapped = 0;
+	swapped |= (n & 0xff00) >> 8;
+	swapped |= (n & 0x00ff) << 8;
+	return swapped;
 }
