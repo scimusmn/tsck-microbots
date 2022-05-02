@@ -4,10 +4,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "image.h"
 #include "options.h"
 
-uint16_t swap_endianness(uint16_t n);
-uint16_t * convert_image(char * filename, size_t *size);
+#define MAX_ARRAY_IMAGES 256
 
 int main(int argc, char ** argv)
 {
@@ -15,7 +15,7 @@ int main(int argc, char ** argv)
 	if (!parse_options(&opts, argc, argv))
 		return 0;
 
-	size_t size;
+	/*size_t size;
 	uint16_t *buffer;
 
 	FILE * output = fopen(opts.file_data, "wb");
@@ -25,64 +25,50 @@ int main(int argc, char ** argv)
 		fwrite(buffer, sizeof(uint16_t), size/sizeof(uint16_t), output);
 		free(buffer);
 	}
-	fclose(output);
+	fclose(output);*/
+
+
+	size_t size;
+	uint16_t *buffer;
+
+	for (int i=0; i<opts.n_images; i++) {
+		struct image_settings_t *img = opts.image_settings + i;
+
+	}
 
 	return 0;
 }
 
-struct pixel_t {
-	unsigned char r, g, b;
-};
-
-uint16_t * convert_image(char * filename, size_t *size)
+void process_array(struct image_settings_t *img_settings)
 {
-	/* load image from file */
-	int width, height, channels;
-	struct pixel_t *pixels = (struct pixel_t *) stbi_load(filename, &width, &height, &channels, 3);	
+	size_t n_images;
+	struct image_t images[MAX_ARRAY_IMAGES];
 
-	if (pixels == NULL) {
-		fprintf(stderr, "WARNING: could not load file '%s'. It will be excluded from the output.\n", filename);
-		return NULL;
+	struct image_t *img = load_image(img_settings->filename);
+	size_t w = img->width / img_settings->array_w;
+	size_t h = img->height / img_settings->array_h;
+
+	/* check for bg */
+	struct image_t *bg = NULL;
+	if (img_settings->background_image != NULL) {
+		struct image_t *bg_full = load_image(img_settings->background_image);
+		if (bg_full->width != w || bg_full->height != h) {
+			/* extract sub-image */
+			size_t x0 = img_settings->bg_x;
+			size_t y0 = img_settings->bg_y;
+			size_t x1 = x0 + w;
+			size_t y1 = y0 + h;
+			bg = extract_subimage(bg_full, x0, y0, x1, y1);
+			free_image(bg_full);
+		}
+		else {
+			bg = bg_full;
+		}
 	}
 
-	/* allocate buffer for GCI data */
-	size_t header_size = 3 * sizeof(uint16_t);
-	size_t pixel_buffer = 2 * width * height;
-	*size = header_size + pixel_buffer;
-	uint16_t *gci = malloc(*size);
+	for (int y=0; y<img_settings->array_h; y++) {
+		for (int x=0; x<img_settngs->array_w; x++) {
+			size_t x0 = x*w;
+			size_t y0 = y*h;
+			struct image_t *sub = extract_subimage(img, x0, y0, x0+w, y0+h);
 
-	if (gci == NULL) {
-		fprintf(stderr,
-		        "WARNING: failed to allocate %lu bytes of memory! Image '%s' will not be processed",
-		        header_size + pixel_buffer, filename);
-		stbi_image_free((unsigned char *)pixels);
-		return NULL;
-	}
-
-	/* create gci header */
-	gci[0] = swap_endianness(width);
-	gci[1] = swap_endianness(height);
-	gci[2] = 0x0010;
-
-	/* convert pixels */
-	for (int i=0; i<width*height; i++) {
-		struct pixel_t pixel = pixels[i];
-		uint16_t p565 = 0;
-		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits */
-		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits */
-		p565 |= (pixel.b >> 3);       /* blue in final 5 bits */
-		gci[3+i] = swap_endianness(p565);
-	}
-
-	/* clean up */
-	stbi_image_free((unsigned char *)pixels);
-	return gci;
-}
-
-uint16_t swap_endianness(uint16_t n)
-{
-	uint16_t swapped = 0;
-	swapped |= (n & 0xff00) >> 8;
-	swapped |= (n & 0x00ff) << 8;
-	return swapped;
-}

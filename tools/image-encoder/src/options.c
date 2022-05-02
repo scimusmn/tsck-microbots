@@ -2,59 +2,170 @@
 
 #include "options.h"
 
+#define OPT_IMAGE 'i'
+#define OPT_ARRAY 'a'
+#define OPT_BACKGROUND 'b'
+#define OPT_OFFSET 'f'
+#define OPT_COLOR 'c'
+
+#define OPT_BINARY_OUTPUT 'o'
+#define OPT_HEADER_OUTPUT 'r'
+
+#define OPT_HELP 'h'
+
 
 static struct cag_option options[] = {
-	{ .identifier = 'i',
-	  .access_letters = "i",
-	  .access_name = "image",
-	  .value_name = "FILENAME",
-	  .description = "Add an image to the output."
+	{
+		.identifier = OPT_IMAGE,
+		.access_letters = "i",
+		.access_name = "image",
+		.value_name = "FILENAME",
+		.description = "Add an image to the outputs."
 	},
-	{ .identifier = 'o',
-	  .access_letters = "o",
-	  .access_name = "output",
-	  .value_name = "FILENAME",
-	  .description = "Set the binary output file. (default: output.gci)"
+	{
+		.identifier = OPT_ARRAY,
+		.access_letters = NULL,
+		.access_name = "array",
+		.value_name = "WIDTHxHEIGHT",
+		.description = "Set the next image to be an array of WIDTH * HEIGHT sub-images",
 	},
-	{ .identifier = 'c',
-	  .access_letters = "c",
-	  .access_name = "constants",
-	  .value_name = "FILENAME",
-	  .description = "Set the C constants output file. If omitted, output to stdout."
+	{
+		.identifier = OPT_BACKGROUND,
+		.access_letters = NULL,
+		.access_name = "background",
+		.value_name = "FILENAME",
+		.description = "Set the next image to use FILENAME as a background image."
 	},
-	{ .identifier = 'h',
-	  .access_letters = "h",
-	  .access_name = "help",
-	  .description = "Show help information"
+	{
+		.identifier = OPT_OFFSET,
+		.access_letters = NULL,
+		.access_name = "offset",
+		.value_name = "XxY",
+		.description = "When replacing background pixels, start at (X, Y) in the background image rather than (0, 0).",
+	},
+	{
+		.identifier = OPT_COLOR,
+		.access_letters = NULL,
+		.access_name = "replace-color",
+		.value_name = "RRGGBB",
+		.description = "Replace all pixels with the matching color with pixels from the background image. "
+		               "Default: 00ff00 (green)"
+	},
+	{
+		.identifier = OPT_BINARY_OUTPUT,
+		.access_letters = NULL,
+		.access_name = "binary-output",
+		.value_name = "FILENAME",
+		.description = "Set the binary output file. (default: output.gci)"
+	},
+	{
+		.identifier = OPT_HEADER_OUTPUT,
+		.access_letters = NULL,
+		.access_name = "header-output",
+		.value_name = "FILENAME",
+		.description = "Set the C constants output file. If omitted, output to stdout."
+	},
+	{
+		.identifier = 'h',
+		.access_letters = "h",
+		.access_name = "help",
+		.description = "Show help information"
 	}
 };
 
+
+static void setup_image(struct image_settings_t *img)
+{
+	img->filename = NULL;
+	img->array_w = 0;
+	img->array_h = 0;
+
+	img->background_image = NULL;
+	img->bg_x = 0;
+	img->bg_y = 0;
+	img->color = (struct pixel_t){ 0, 0xff, 0 };
+}
+
 int parse_options(struct options_t *opts, int argc, char ** argv)
 {
-	opts->n_filenames = 0;
-	opts->file_data = "output.gci";
-	opts->file_constants = NULL;
+	opts->n_images = 0;
+	opts->file_binary = "images.gci";
+	opts->file_header = NULL;
+
+	/* configure first image */
+	setup_image(opts->image_settings);
 
 	cag_option_context context;
 	cag_option_prepare(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
 
 	while(cag_option_fetch(&context)) {
 		char opt = cag_option_get(&context);
+		struct image_settings_t *current_image = opts->image_settings + opts->n_images;
+
 		switch (opt) {
-			case 'i':
-				opts->filenames[opts->n_filenames] = cag_option_get_value(&context);
-				opts->n_filenames += 1;
+			case OPT_IMAGE:
+				/* finalize current image */
+				current_image->filename = cag_option_get_value(&context);
+				opts->n_images += 1;
+
+				/* setup next image */
+				setup_image(current_image + 1);
 				break;
 
-			case 'o':
-				opts->file_data = cag_option_get_value(&context);
+			case OPT_ARRAY:
+				do {
+					const char *arg = cag_option_get_value(&context);
+					int w, h;
+					int result = sscanf(arg, "%dx%d", &w, &h);
+					if (result != 2) {
+						fprintf(stderr, "ERROR: bad array format '%s'\n", arg);
+						return 0;
+					}
+					current_image->array_w = w;
+					current_image->array_h = h;
+				} while(0);
+				break;
+				
+			case OPT_BACKGROUND:
+				current_image->background_image = cag_option_get_value(&context);
 				break;
 
-			case 'c':
-				opts->file_constants = cag_option_get_value(&context);
+			case OPT_OFFSET:
+				do {
+					const char *arg = cag_option_get_value(&context);
+					int x, y;
+					int result = sscanf(arg, "%dx%d", &x, &y);
+					if (result != 2) {
+						fprintf(stderr, "ERROR: bad offset format '%s'\n", arg);
+						return 0;
+					}
+					current_image->bg_x = x;
+					current_image->bg_y = y;
+				} while(0);
 				break;
 
-			case 'h':
+			case OPT_COLOR:
+				do {
+					const char *arg = cag_option_get_value(&context);
+					int r, g, b;
+					int result = sscanf(arg, "%02x%02x%02x", &r, &g, &b);
+					if (result != 3) {
+						fprintf(stderr, "ERROR: bad color format '%s'\n", arg);
+						return 0;
+					}
+					current_image->color = (struct pixel_t){ r, g, b };
+				} while(0);
+				break;
+
+			case OPT_BINARY_OUTPUT:
+				opts->file_binary = cag_option_get_value(&context);
+				break;
+
+			case OPT_HEADER_OUTPUT:
+				opts->file_header = cag_option_get_value(&context);
+				break;
+
+			case OPT_HELP:
 				printf("Usage: %s [OPTIONS]\n", argv[0]);
 				printf("Convert images into GCI data for use on 4D Systems displays\n");
 				cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
