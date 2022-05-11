@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "image.h"
 
@@ -47,7 +48,7 @@ static int out_of_range(struct image_t *image, size_t x, size_t y) {
 struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, size_t x1, size_t y1)
 {
 	if (x1 < x0 || y1 < y0 ||
-	    out_of_range(x0, y0) || out_of_range(x1, y1)) {
+	    out_of_range(image, x0, y0) || out_of_range(image, x1, y1)) {
 		fprintf(stderr, "ERROR: attempted to extract subimage with invalid range (%lu,%lu) - (%lu, %lu)\n",
 			x0, y0, x1, y1);
 		return NULL;	
@@ -86,7 +87,7 @@ void replace_color(struct image_t *image, struct image_t *bg, struct pixel_t col
 		if (image->pixels[i].r == color.r &&
 		    image->pixels[i].g == color.g &&
 		    image->pixels[i].b == color.b) {
-			image->pixels[i] = gb->pixels[i];
+			image->pixels[i] = bg->pixels[i];
 		}
 	}
 }
@@ -133,8 +134,8 @@ void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
 	}
 
 	/* create gci header */
-	gci[0] = big_endian(width);
-	gci[1] = big_endian(height);
+	gci[0] = big_endian(image->width);
+	gci[1] = big_endian(image->height);
 	gci[2] = big_endian(0x1000);
 
 	/* convert pixels */
