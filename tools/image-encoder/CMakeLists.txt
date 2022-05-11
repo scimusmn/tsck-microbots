@@ -14,12 +14,12 @@ add_executable(image-encoder
 target_link_libraries(image-encoder m)
 
 
-add_executable(image-encoder-tests
+add_executable(test-image-encoder
 	EXCLUDE_FROM_ALL
 	src/lily-test.c
 	src/image.c
 	src/image.test.c
 	src/tests.c)
 
-target_compile_definitions(image-encoder-tests PUBLIC SOURCE_PATH_SIZE=65)
-target_link_libraries(image-encoder-tests m)
+target_compile_definitions(test-image-encoder PUBLIC SOURCE_PATH_SIZE=65)
+target_link_libraries(test-image-encoder m)
