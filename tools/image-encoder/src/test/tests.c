@@ -1,4 +1,4 @@
-#include "suites.h"
+#include "test/suites.h"
 
 int main()
 {

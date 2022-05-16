@@ -1,9 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "suites.h"
-#include "lily-test.h"
-#include "image.h"
+#include "test/suites.h"
+#include "test/lily-test.h"
+#include "image/image.h"
 
 static void test_extract_subimage();
 static void test_combine_images();

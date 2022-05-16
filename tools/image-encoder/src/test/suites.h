@@ -1,7 +1,7 @@
 #ifndef IMAGE_SUITES_H
 #define IMAGE_SUITES_H
 
-#include "lily-test.h"
+#include "test/lily-test.h"
 
 void suite_image();
 

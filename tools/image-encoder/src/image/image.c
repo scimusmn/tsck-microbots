@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "image.h"
+#include "image/stb_image.h"
+#include "image/image.h"
 
 struct image_t * load_image(char *filename)
 {
