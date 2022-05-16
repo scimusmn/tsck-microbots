@@ -1,4 +1,4 @@
-#include "cargs.h"
+#include "cargs/cargs.h"
 
 #include "options.h"
 
@@ -44,24 +44,16 @@ static struct cag_option options[] = {
 		.description = "When replacing background pixels, start at (X, Y) in the background image rather than (0, 0).",
 	},
 	{
-		.identifier = OPT_COLOR,
-		.access_letters = NULL,
-		.access_name = "replace-color",
-		.value_name = "RRGGBB",
-		.description = "Replace all pixels with the matching color with pixels from the background image. "
-		               "Default: 00ff00 (green)"
-	},
-	{
 		.identifier = OPT_BINARY_OUTPUT,
 		.access_letters = NULL,
-		.access_name = "binary-output",
+		.access_name = "gci",
 		.value_name = "FILENAME",
 		.description = "Set the binary output file. (default: output.gci)"
 	},
 	{
 		.identifier = OPT_HEADER_OUTPUT,
 		.access_letters = NULL,
-		.access_name = "header-output",
+		.access_name = "header",
 		.value_name = "FILENAME",
 		.description = "Set the C constants output file. If omitted, output to stdout."
 	},
@@ -77,13 +69,12 @@ static struct cag_option options[] = {
 static void setup_image(struct image_settings_t *img)
 {
 	img->filename = NULL;
-	img->array_w = 0;
-	img->array_h = 0;
+	img->array_w = 1;
+	img->array_h = 1;
 
 	img->background_image = NULL;
-	img->bg_x = 0;
-	img->bg_y = 0;
-	img->color = (struct pixel_t){ 0, 0xff, 0 };
+	img->offset.x = 0;
+	img->offset.y = 0;
 }
 
 int parse_options(struct options_t *opts, int argc, char ** argv)
@@ -139,21 +130,8 @@ int parse_options(struct options_t *opts, int argc, char ** argv)
 						fprintf(stderr, "ERROR: bad offset format '%s'\n", arg);
 						return 0;
 					}
-					current_image->bg_x = x;
-					current_image->bg_y = y;
-				} while(0);
-				break;
-
-			case OPT_COLOR:
-				do {
-					const char *arg = cag_option_get_value(&context);
-					int r, g, b;
-					int result = sscanf(arg, "%02x%02x%02x", &r, &g, &b);
-					if (result != 3) {
-						fprintf(stderr, "ERROR: bad color format '%s'\n", arg);
-						return 0;
-					}
-					current_image->color = (struct pixel_t){ r, g, b };
+					current_image->offset.x = x;
+					current_image->offset.y = y;
 				} while(0);
 				break;
 

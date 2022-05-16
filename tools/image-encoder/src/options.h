@@ -5,7 +5,7 @@
 #define MAX_INPUT_IMAGES 128
 #endif
 
-#include "image.h"
+#include "image/image.h"
 
 struct image_settings_t {
 	const char * filename;
@@ -13,8 +13,7 @@ struct image_settings_t {
 	size_t array_w, array_h;
 
 	const char * background_image;
-	size_t bg_x, bg_y;
-	struct pixel_t color;
+	struct point_t offset;
 };
 
 struct options_t {
