@@ -194,7 +194,7 @@ static void test_convert_gci()
 		lily_assert_int_equal(px[i].b >> 3, array[index+1] & 0x1f);
 	}
 	
-	free(gci);
+	free_gci(gci);
 }
 
 
