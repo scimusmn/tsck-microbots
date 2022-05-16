@@ -45,12 +45,12 @@ static int out_of_range(struct image_t *image, size_t x, size_t y) {
 	return 0;
 }
 
-struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, size_t x1, size_t y1)
+struct image_t * extract_subimage(struct image_t *image, struct point_t p0, struct point_t p1)
 {
-	if (x1 < x0 || y1 < y0 ||
-	    out_of_range(image, x0, y0) || out_of_range(image, x1, y1)) {
+	if (p1.x < p0.x || p1.y < p0.y ||
+	    out_of_range(image, p0.x, p0.y) || out_of_range(image, p1.x, p1.y)) {
 		fprintf(stderr, "ERROR: attempted to extract subimage with invalid range (%lu,%lu) - (%lu, %lu)\n",
-			x0, y0, x1, y1);
+			p0.x, p0.y, p1.x, p1.y);
 		return NULL;	
 	}
 
@@ -60,8 +60,8 @@ struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, s
 		return NULL;
 	}
 
-	sub_image->width = x1 - x0 + 1;
-	sub_image->height = y1 - y0 + 1;
+	sub_image->width = p1.x - p0.x + 1;
+	sub_image->height = p1.y - p0.y + 1;
 	sub_image->pixels = malloc(sub_image->width * sub_image->height * sizeof(struct rgba_t));
 	if (sub_image->pixels == NULL) {
 		fprintf(stderr, "ERROR: failed to allocate memory for sub-image pixel data!\n");
@@ -69,10 +69,10 @@ struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, s
 		return NULL;
 	}
 
-	for (size_t y = y0; y<=y1; y++) {
-		for (size_t x = x0; x<=x1; x++) {
+	for (size_t y = p0.y; y<=p1.y; y++) {
+		for (size_t x = p0.x; x<=p1.x; x++) {
 			int source_index = get_index(image, x, y);
-			int dest_index = get_index(sub_image, x-x0, y-y0);
+			int dest_index = get_index(sub_image, x-p0.x, y-p0.y);
 			sub_image->pixels[dest_index] = image->pixels[source_index];
 		}
 	}
@@ -118,9 +118,9 @@ static uint16_t big_endian(uint16_t n)
 	return swapped;
 }
 
-void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
+/*void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
 {
-	/* allocate buffer for GCI data */
+	/* allocate buffer for GCI data /
 	size_t header_size = 3 * sizeof(uint16_t);
 	size_t pixel_buffer = 2 * image->width * image->height;
 	*size = header_size + pixel_buffer;
@@ -133,21 +133,21 @@ void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
 		return;
 	}
 
-	/* create gci header */
+	/* create gci header /
 	gci[0] = big_endian(image->width);
 	gci[1] = big_endian(image->height);
 	gci[2] = big_endian(0x1000);
 
-	/* convert pixels */
+	/* convert pixels /
 	for (int i=0; i<image->width*image->height; i++) {
 		struct rgba_t pixel = image->pixels[i];
 		uint16_t p565 = 0;
-		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits */
-		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits */
-		p565 |= (pixel.b >> 3);       /* blue in final 5 bits */
+		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits /
+		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits /
+		p565 |= (pixel.b >> 3);       /* blue in final 5 bits /
 		gci[3+i] = big_endian(p565);
 	}
 
 	*destination = gci;
 }
-
+*/

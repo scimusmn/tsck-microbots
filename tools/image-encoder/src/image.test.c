@@ -23,6 +23,8 @@ static void test_extract_subimage()
 	img.pixels = malloc(img.width * img.height * sizeof(struct rgba_t));
 	lily_assert_not_null(img.pixels);
 
+	struct point_t p0, p1;
+
 	/* top left: white */
 	img.pixels[0] = (struct rgba_t){ 255, 255, 255 };
 	img.pixels[1] = (struct rgba_t){ 255, 255, 255 };
@@ -48,7 +50,9 @@ static void test_extract_subimage()
 	img.pixels[15] = (struct rgba_t){ 0, 0, 255 };
 
 	/* extract top left */
-	struct image_t *top_left = extract_subimage(&img, 0, 0, 1, 1);
+	p0.x = 0; p0.y = 0;
+	p1.x = 1; p1.y = 1;
+	struct image_t *top_left = extract_subimage(&img, p0, p1); 
 	lily_assert_not_null(top_left);
 	lily_assert_int_equal(top_left->width, 2);
 	lily_assert_int_equal(top_left->height, 2);
@@ -59,7 +63,9 @@ static void test_extract_subimage()
 	free_image(top_left);
 
 	/* extract top right */
-	struct image_t *top_right = extract_subimage(&img, 2, 0, 3, 1);
+	p0.x=2; p0.y=0;
+	p1.x=3; p1.y=1;
+	struct image_t *top_right = extract_subimage(&img, p0, p1);
 	lily_assert_not_null(top_right);
 	lily_assert_int_equal(top_right->width, 2);
 	lily_assert_int_equal(top_right->height, 2);
@@ -70,7 +76,9 @@ static void test_extract_subimage()
 	free_image(top_right);
 
 	/* extract bottom left */
-	struct image_t *bottom_left = extract_subimage(&img, 0, 2, 1, 3);
+	p0.x=0; p0.y=2;
+	p1.x=1; p1.y=3;
+	struct image_t *bottom_left = extract_subimage(&img, p0, p1);
 	lily_assert_not_null(bottom_left);
 	lily_assert_int_equal(bottom_left->width, 2);
 	lily_assert_int_equal(bottom_left->height, 2);
@@ -81,7 +89,9 @@ static void test_extract_subimage()
 	free_image(bottom_left);
 
 	/* extract bottom right */
-	struct image_t *bottom_right = extract_subimage(&img, 2, 2, 3, 3); 
+	p0.x=2; p0.y=2;
+	p1.x=3; p1.y=3;
+	struct image_t *bottom_right = extract_subimage(&img, p0, p1); 
 	lily_assert_not_null(bottom_right);
 	lily_assert_int_equal(bottom_right->width, 2);
 	lily_assert_int_equal(bottom_right->height, 2);
@@ -92,7 +102,9 @@ static void test_extract_subimage()
 	free_image(bottom_right);
 
 	/* extract center */
-	struct image_t *center = extract_subimage(&img, 1, 1, 2, 2);
+	p0.x=1; p0.y=1;
+	p1.x=2; p1.y=2;
+	struct image_t *center = extract_subimage(&img, p0, p1);
 	lily_assert_not_null(center);
 	lily_assert_int_equal(center->width, 2);
 	lily_assert_int_equal(center->height, 2);
