@@ -6,10 +6,12 @@
 #include "image.h"
 
 static void test_extract_subimage();
+static void test_combine_images();
 
 void suite_image()
 {
 	lily_run_test(test_extract_subimage);
+	lily_run_test(test_combine_images);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -118,21 +120,38 @@ static void test_extract_subimage()
 }
 
 
-/* static void test_add_background()
+static struct rgba_t pixel_max(struct rgba_t a, struct rgba_t b)
 {
-	struct image_t img;
-	img.width = 4;
-	img.height = 4;
-	img.pixels = malloc(img.width * img.height * sizeof(struct rgba_t));
-	lily_assert_not_null(img.pixels);
+	size_t a_combined = a.r + a.g + a.b + a.a;
+	size_t b_combined = b.r + b.g + b.b + b.a;
+	if (a_combined > b_combined) return a;
+	return b;
+}
 
-	struct image_t bg;
-	bg.width = 4;
-	bg.height = 4;
-	bg.pixels = malloc(bg.width * bg.height * sizeof(struct rgba_t));
-	lily_assert_not_null(bg.pixels);
+static void test_combine_images()
+{
+	const size_t width = 16;
+	const size_t height = 16;
+	
+	srand(0);
+	struct image_t a, b;
+	struct rgba_t px_a[width*height], px_b[width*height];
+	a.width = width; a.height = height; a.pixels = px_a;
+	b.width = width; b.height = height; b.pixels = px_b;
 
-	for (int y=0; y<4; y++) {
-		for (int x=0; x<4; x++) {
-			img.pixels[4*y + x] = (struct rgba_t) { 0xff >> y, 0xff, 0xff, 0xff >> x };
-*/
+	for (int i=0; i<width*height; i++) {
+		a.pixels[i] = (struct rgba_t) { rand()%256, rand()%256, rand()%256, rand()%256 };
+		b.pixels[i] = (struct rgba_t) { rand()%256, rand()%256, rand()%256, rand()%256 };
+	}
+
+	struct image_t *combined = combine_images(&a, &b, pixel_max);
+	lily_assert_not_null(combined);
+
+	for (int i=0; i<width*height; i++) {
+		struct rgba_t expected = pixel_max(a.pixels[i], b.pixels[i]);
+		lily_assert_memory_equal(combined->pixels + i, &expected, sizeof(struct rgba_t));
+	}
+
+	free_image(combined);
+}
+

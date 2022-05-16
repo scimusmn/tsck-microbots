@@ -81,15 +81,34 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 }
 
 
-void replace_color(struct image_t *image, struct image_t *bg, struct rgba_t color)
+struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_operation_t op)
 {
-	for (int i=0; i<(image->width * image->height); i++) {
-		if (image->pixels[i].r == color.r &&
-		    image->pixels[i].g == color.g &&
-		    image->pixels[i].b == color.b) {
-			image->pixels[i] = bg->pixels[i];
-		}
+	if (a->width != b->width || a->height != b->height) {
+		fprintf(stderr, "ERROR: images are different sizes! (%lu, %lu) != (%lu, %lu)\n",
+		        a->width, a->height, b->width, b->height);
+		return NULL;
 	}
+
+	size_t n_pixels = a->width * b->width;
+	struct image_t *output = malloc(sizeof(struct image_t));
+	if (output == NULL) {
+		fprintf(stderr, "ERROR: failed to allocate memory for image struct!\n");
+		return NULL;
+	}
+	output->pixels = malloc(n_pixels * sizeof(struct rgba_t));
+	if (output->pixels == NULL) {
+		fprintf(stderr, "ERROR: failed to allocate memory for pixel array with %lu elements!\n", n_pixels);
+		free(output);
+		return NULL;
+	}
+	output->width = a->width;
+	output->height = a->height;
+
+	for (int i=0; i<a->width * a->height; i++) {
+		output->pixels[i] = op(a->pixels[i], b->pixels[i]);
+	}
+	
+	return output;
 }
 
 

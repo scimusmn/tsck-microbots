@@ -22,22 +22,21 @@ struct gci_t {
 	size_t size;
 };
 
+typedef struct rgba_t (*pixel_operation_t)(struct rgba_t, struct rgba_t);
+
 
 struct image_t * load_image(char *filename);
 void free_image(struct image_t *image);
-struct image_alpha_t * load_image_alpha(char *filename);
-void free_image_alpha(struct image_alpha_t *image);
 
 /* extract a sub-region from an image as a new region.
  * the extracted image does not share memory with the original,
  * so you can free the original without consequence. */
 struct image_t * extract_subimage(struct image_t *image, struct point_t p0, struct point_t p1);
 
-/* alpha blend with another image's data.
- * the images *must* be the same size!
- * alpha data from the background is ignored.
- */
-struct image_t * add_background(struct image_t *image, struct image_t *bg);
+/* combine images together
+ * the function pointer accepts two pixels and returns a new pixel to be put into the output. 
+ * the output is a new image and must be freed as normal. the originals are not modified. */
+ struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_operation_t op);
 
 /* convert an image to the GCI format. */
 struct gci_t * convert_gci(struct image_t *image);
