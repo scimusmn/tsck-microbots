@@ -7,11 +7,13 @@
 
 static void test_extract_subimage();
 static void test_combine_images();
+static void test_convert_gci();
 
 void suite_image()
 {
 	lily_run_test(test_extract_subimage);
 	lily_run_test(test_combine_images);
+	lily_run_test(test_convert_gci);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -154,4 +156,45 @@ static void test_combine_images()
 
 	free_image(combined);
 }
+
+
+static void test_convert_gci()
+{
+	const size_t width = 16;
+	const size_t height = 8;
+
+	srand(0);
+	struct image_t img;
+	struct rgba_t px[width * height];
+	img.width = width; img.height = height; img.pixels = px;
+	for (int i=0; i<width*height; i++) {
+		px[i] = (struct rgba_t) { rand()%256, rand()%256, rand()%256, rand()%256 };
+	}
+
+	struct gci_t *gci = convert_gci(&img);
+	lily_assert_not_null(gci);
+	uint8_t *array = gci->array;
+
+	/* check header */
+	lily_assert_int_equal(array[0], (width & 0xff00) >> 8);
+	lily_assert_int_equal(array[1], (width & 0x00ff));
+
+	lily_assert_int_equal(array[2], (height & 0xff00) >> 8);
+	lily_assert_int_equal(array[3], (height & 0x00ff));
+
+	lily_assert_int_equal(array[4], (0x1000 & 0xff00) >> 8);
+	lily_assert_int_equal(array[5], (0x1000 & 0x00ff));
+
+	/* check image data */
+	for (int i=0; i<width*height; i++) {
+		int index = 2*i + 6;
+		lily_assert_int_equal(px[i].r & 0xf8, array[index] & 0xf8);
+		lily_assert_int_equal(px[i].g >> 5, array[index] & 0x07);           /* green upper 3 bits */
+		lily_assert_int_equal(px[i].g & 0x1c, (array[index+1] & 0xe0) >> 3); /* green lower 3 bits */
+		lily_assert_int_equal(px[i].b >> 3, array[index+1] & 0x1f);
+	}
+	
+	free(gci);
+}
+
 

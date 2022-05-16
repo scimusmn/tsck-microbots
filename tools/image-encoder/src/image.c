@@ -112,61 +112,57 @@ struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_oper
 }
 
 
-static uint16_t big_endian(uint16_t n)
+static uint8_t hi(uint16_t n) { return (n & 0xff00) >> 8; }
+static uint8_t lo(uint16_t n) { return n & 0x00ff; }
+
+struct gci_t * convert_gci(struct image_t *image)
 {
-	static int is_little_endian = -1;
-	if (is_little_endian == -1) {
-		int test = 0x01;	
-		uint8_t *ptr = (uint8_t *) &test;
-		if (*ptr == 1) {
-			/* system is little endian */
-			is_little_endian = 1;
-		}
-		else {
-			/* system is big endian */
-			is_little_endian = 0;
-		}
+	/* useful size constants */
+	const size_t header_size = 6 * sizeof(uint8_t);
+	const size_t rgb565_size = 2 * sizeof(uint8_t);
+	const size_t n_pixels = image->width * image->height;
+	const size_t array_size = n_pixels * rgb565_size;
+
+	/* allocate output */
+	struct gci_t *output = malloc(sizeof(struct gci_t));
+	if (output == NULL) {
+		fprintf(stderr, "ERROR: failed to allocate memory for gci struct!\n");
+		return NULL;
+	}
+	output->array = malloc(header_size + array_size);
+	if (output->array == NULL) {
+		fprintf(stderr, "ERROR: failed to allocate memory for GCI array with %lu elements!\n", header_size + array_size);
+		free(output);
+		return NULL;
 	}
 
-	if (!is_little_endian)
-		return n;
+	/* set up header */
+	output->size = header_size + array_size;
+	output->array[0] = hi(image->width);
+	output->array[1] = lo(image->width);
+	output->array[2] = hi(image->height);
+	output->array[3] = lo(image->height);
+	output->array[4] = 0x10;
+	output->array[5] = 0x00;
 
-	uint16_t swapped = 0;
-	swapped |= (n & 0xff00) >> 8;
-	swapped |= (n & 0x00ff) << 8;
-	return swapped;
-}
-
-/*void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
-{
-	/* allocate buffer for GCI data /
-	size_t header_size = 3 * sizeof(uint16_t);
-	size_t pixel_buffer = 2 * image->width * image->height;
-	*size = header_size + pixel_buffer;
-	uint16_t *gci = malloc(*size);
-
-	if (gci == NULL) {
-		fprintf(stderr,
-		        "WARNING: failed to allocate %lu bytes of memory!", header_size + pixel_buffer);
-		*destination = NULL;
-		return;
-	}
-
-	/* create gci header /
-	gci[0] = big_endian(image->width);
-	gci[1] = big_endian(image->height);
-	gci[2] = big_endian(0x1000);
-
-	/* convert pixels /
-	for (int i=0; i<image->width*image->height; i++) {
+	/* do rgb565 conversion */
+	for (int i=0; i<n_pixels; i++) {
 		struct rgba_t pixel = image->pixels[i];
-		uint16_t p565 = 0;
-		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits /
-		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits /
-		p565 |= (pixel.b >> 3);       /* blue in final 5 bits /
-		gci[3+i] = big_endian(p565);
+		uint16_t px = 0;
+		px |= (pixel.r >> 3) << 11; /* red in first 5 bits */
+		px |= (pixel.g >> 2) << 5;  /* green in middle 6 bits */
+		px |= (pixel.b >> 3);       /* blue in final 5 bits */	
+		int index = 2*i + 6;
+		output->array[index]   = hi(px);
+		output->array[index+1] = lo(px);
 	}
 
-	*destination = gci;
+	return output;
 }
-*/
+
+
+void free_gci(struct gci_t *gci)
+{
+	free(gci->array);
+	free(gci);
+}

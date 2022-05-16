@@ -18,7 +18,7 @@ struct image_t {
 };
 
 struct gci_t {
-	uint16_t *array;
+	uint8_t *array;
 	size_t size;
 };
 
