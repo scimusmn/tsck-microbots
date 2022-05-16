@@ -39,6 +39,7 @@ static int get_index(struct image_t *image, size_t x, size_t y)
 	return (image->width * y) + x;
 }
 
+/* check if a given point is outside the image */
 static int out_of_range(struct image_t *image, size_t x, size_t y) {
 	if (x > image->width || y > image->height)
 		return 1;
@@ -47,6 +48,7 @@ static int out_of_range(struct image_t *image, size_t x, size_t y) {
 
 struct image_t * extract_subimage(struct image_t *image, struct point_t p0, struct point_t p1)
 {
+	/* check if indices are out of range */
 	if (p1.x < p0.x || p1.y < p0.y ||
 	    out_of_range(image, p0.x, p0.y) || out_of_range(image, p1.x, p1.y)) {
 		fprintf(stderr, "ERROR: attempted to extract subimage with invalid range (%lu,%lu) - (%lu, %lu)\n",
@@ -54,6 +56,7 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 		return NULL;	
 	}
 
+	/* allocate memory for extracted image */
 	struct image_t *sub_image = malloc(sizeof(struct image_t));
 	if (sub_image == NULL) {
 		fprintf(stderr, "ERROR: failed to allocate memory for sub-image!\n");
@@ -69,6 +72,7 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 		return NULL;
 	}
 
+	/* copy data from source */
 	for (size_t y = p0.y; y<=p1.y; y++) {
 		for (size_t x = p0.x; x<=p1.x; x++) {
 			int source_index = get_index(image, x, y);
@@ -83,12 +87,14 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 
 struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_operation_t op)
 {
+	/* check that images have the same dimensions */
 	if (a->width != b->width || a->height != b->height) {
 		fprintf(stderr, "ERROR: images are different sizes! (%lu, %lu) != (%lu, %lu)\n",
 		        a->width, a->height, b->width, b->height);
 		return NULL;
 	}
 
+	/* allocate memory for result */
 	size_t n_pixels = a->width * b->width;
 	struct image_t *output = malloc(sizeof(struct image_t));
 	if (output == NULL) {
@@ -104,6 +110,7 @@ struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_oper
 	output->width = a->width;
 	output->height = a->height;
 
+	/* compute combination */
 	for (int i=0; i<a->width * a->height; i++) {
 		output->pixels[i] = op(a->pixels[i], b->pixels[i]);
 	}

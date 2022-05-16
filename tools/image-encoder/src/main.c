@@ -9,6 +9,7 @@
 
 #define MAX_ARRAY_IMAGES 256
 
+/* structure to store GCI images */
 struct gci_arr_t {
 	size_t n_gci;
 	struct gci_t *array[MAX_ARRAY_IMAGES];
@@ -20,24 +21,15 @@ struct gci_arr_t {
 
 void process_image(struct gci_arr_t *g, struct image_settings_t settings);
 
+
 int main(int argc, char ** argv)
 {
+	/* get command line options */
 	struct options_t opts;
 	if (!parse_options(&opts, argc, argv))
 		return 0;
 
-	/*size_t size;
-	uint16_t *buffer;
-
-	FILE * output = fopen(opts.file_data, "wb");
-	for (int i=0; i<opts.n_filenames; i++) {
-		buffer = convert_image(opts.filenames[i], &size);
-		if (buffer == NULL) continue;
-		fwrite(buffer, sizeof(uint16_t), size/sizeof(uint16_t), output);
-		free(buffer);
-	}
-	fclose(output);*/
-
+	/* initialize variables */
 	struct gci_arr_t g;
 	FILE * binary = fopen(opts.file_binary, "wb");
 	FILE * header;
@@ -69,6 +61,7 @@ int main(int argc, char ** argv)
 }
 
 
+/* lerp pixels by the first pixel's alpha value */
 static struct rgba_t alpha_blend(struct rgba_t a, struct rgba_t b)
 {
 	struct rgba_t result;
@@ -79,26 +72,34 @@ static struct rgba_t alpha_blend(struct rgba_t a, struct rgba_t b)
 	return result;
 }
 
+/* convert a subimage into GCI and store with an appropriate label */
 static void process_subimage(struct gci_arr_t *g, char *base_label, struct image_t *img, struct image_t *bg, 
                              size_t w, size_t h, int x, int y, int omit_array_label) {
 	if (bg != NULL) {
+		/* add background */
 		struct image_t *tmp = combine_images(img, bg, alpha_blend);
 		free_image(img);
 		img = tmp;
 	}
 
+	/* set label */
 	char *label = malloc(256*sizeof(char));
 	if (omit_array_label)
-		sprintf(label, "%s", base_label);
+		sprintf(label, "%s", base_label); /* for single images, don't include array labels */
 	else
 		sprintf(label, "%s%dx%d", base_label, x, y);
 
+	/* convert to gci */
 	struct gci_t *gci = convert_gci(img);
 	free_image(img);
+
+	/* save to g */
 	int index = g->n_gci;
+
 	g->array[index] = gci;
 	g->offset_array[index] = g->offset;
 	g->label[index] = label;
+
 	g->offset += gci->size;
 	g->n_gci += 1;
 }
@@ -110,8 +111,9 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 	if (settings.label != NULL)
 		strcpy(label, settings.label);
 	else
-		strcpy(label, settings.filename);
+		strcpy(label, settings.filename); /* default to filename */
 
+	/* clean label so that it can be a valid macro identifier */
 	for (char *c = label; *c != 0; c++) {
 		if (!isalnum(*c))
 			*c = '_';
@@ -123,19 +125,20 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 	if (settings.background_image != NULL)
 		bg = load_image(settings.background_image);
 	
-	/* process sub-images */
+	/* compute constants */
 	size_t w = base->width / settings.array_w;
 	size_t h = base->height / settings.array_h;
 	struct image_t *sub_bg = NULL;
 	if (bg != NULL) {
+		/* extract bg image of the same size as each sub-image */
 		struct point_t end = settings.offset;
 		end.x += w-1;
 		end.y += h-1;
 		sub_bg = extract_subimage(bg, settings.offset, end);
 	}
+	int omit_array_label = settings.array_h == 1 && settings.array_w == 1; /* omit array label if there's just one image */
 
-	int omit_array_label = settings.array_h == 1 && settings.array_w == 1;
-
+	/* process sub-images */
 	for (int y = 0; y<settings.array_h; y++) {
 		for (int x = 0; x<settings.array_w; x++) {
 			struct point_t p0 = { w*x, h*y };
@@ -147,6 +150,7 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 		}
 	}
 
+	/* clean up */
 	free_image(base);
 	if (bg != NULL) {
 		free_image(bg);
