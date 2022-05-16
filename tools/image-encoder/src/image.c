@@ -6,7 +6,7 @@ struct image_t * load_image(char *filename)
 {
 	/* load image from file */
 	int width, height, channels;
-	struct pixel_t *pixels = (struct pixel_t *) stbi_load(filename, &width, &height, &channels, 3);	
+	struct rgba_t *pixels = (struct rgba_t *) stbi_load(filename, &width, &height, &channels, 4);	
 
 	if (pixels == NULL) {
 		fprintf(stderr, "ERROR: failed to load image data from '%s'\n", filename);
@@ -62,7 +62,7 @@ struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, s
 
 	sub_image->width = x1 - x0 + 1;
 	sub_image->height = y1 - y0 + 1;
-	sub_image->pixels = malloc(sub_image->width * sub_image->height * sizeof(struct pixel_t));
+	sub_image->pixels = malloc(sub_image->width * sub_image->height * sizeof(struct rgba_t));
 	if (sub_image->pixels == NULL) {
 		fprintf(stderr, "ERROR: failed to allocate memory for sub-image pixel data!\n");
 		free(sub_image);
@@ -81,7 +81,7 @@ struct image_t * extract_subimage(struct image_t *image, size_t x0, size_t y0, s
 }
 
 
-void replace_color(struct image_t *image, struct image_t *bg, struct pixel_t color)
+void replace_color(struct image_t *image, struct image_t *bg, struct rgba_t color)
 {
 	for (int i=0; i<(image->width * image->height); i++) {
 		if (image->pixels[i].r == color.r &&
@@ -140,7 +140,7 @@ void convert_gci(uint16_t **destination, size_t *size, struct image_t *image)
 
 	/* convert pixels */
 	for (int i=0; i<image->width*image->height; i++) {
-		struct pixel_t pixel = image->pixels[i];
+		struct rgba_t pixel = image->pixels[i];
 		uint16_t p565 = 0;
 		p565 |= (pixel.r >> 3) << 11; /* red in first 5 bits */
 		p565 |= (pixel.g >> 2) << 5;  /* green in middle 6 bits */
