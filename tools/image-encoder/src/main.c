@@ -80,7 +80,7 @@ static struct rgba_t alpha_blend(struct rgba_t a, struct rgba_t b)
 }
 
 static void process_subimage(struct gci_arr_t *g, char *base_label, struct image_t *img, struct image_t *bg, 
-                             size_t w, size_t h, int x, int y) {
+                             size_t w, size_t h, int x, int y, int omit_array_label) {
 	if (bg != NULL) {
 		struct image_t *tmp = combine_images(img, bg, alpha_blend);
 		free_image(img);
@@ -88,7 +88,10 @@ static void process_subimage(struct gci_arr_t *g, char *base_label, struct image
 	}
 
 	char *label = malloc(256*sizeof(char));
-	sprintf(label, "%s%dx%d", base_label, x, y);
+	if (omit_array_label)
+		sprintf(label, "%s", base_label);
+	else
+		sprintf(label, "%s%dx%d", base_label, x, y);
 
 	struct gci_t *gci = convert_gci(img);
 	free_image(img);
@@ -104,12 +107,15 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 {
 	/* create base label */
 	char label[256];
-	strcpy(label, settings.filename);
+	if (settings.label != NULL)
+		strcpy(label, settings.label);
+	else
+		strcpy(label, settings.filename);
+
 	for (char *c = label; *c != 0; c++) {
 		if (!isalnum(*c))
 			*c = '_';
 	}
-	printf("%s\n", label);
 
 	/* load image */
 	struct image_t *base = load_image(settings.filename);
@@ -128,6 +134,8 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 		sub_bg = extract_subimage(bg, settings.offset, end);
 	}
 
+	int omit_array_label = settings.array_h == 1 && settings.array_w == 1;
+
 	for (int y = 0; y<settings.array_h; y++) {
 		for (int x = 0; x<settings.array_w; x++) {
 			struct point_t p0 = { w*x, h*y };
@@ -135,7 +143,7 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 			p1.x += w-1; p1.y += h-1;
 
 			struct image_t *img = extract_subimage(base, p0, p1);
-			process_subimage(g, label, img, sub_bg, w, h, x, y);
+			process_subimage(g, label, img, sub_bg, w, h, x, y, omit_array_label);
 		}
 	}
 

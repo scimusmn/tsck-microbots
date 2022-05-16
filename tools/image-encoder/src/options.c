@@ -6,7 +6,7 @@
 #define OPT_ARRAY 'a'
 #define OPT_BACKGROUND 'b'
 #define OPT_OFFSET 'f'
-#define OPT_COLOR 'c'
+#define OPT_LABEL 'l'
 
 #define OPT_BINARY_OUTPUT 'o'
 #define OPT_HEADER_OUTPUT 'r'
@@ -21,6 +21,13 @@ static struct cag_option options[] = {
 		.access_name = "image",
 		.value_name = "FILENAME",
 		.description = "Add an image to the outputs."
+	},
+	{
+		.identifier = OPT_LABEL,
+		.access_letters = NULL,
+		.access_name = "label",
+		.value_name = "LABEL",
+		.description = "Set an explicit name for the next image (defaults to the image filename)",
 	},
 	{
 		.identifier = OPT_ARRAY,
@@ -69,6 +76,7 @@ static struct cag_option options[] = {
 static void setup_image(struct image_settings_t *img)
 {
 	img->filename = NULL;
+	img->label = NULL;
 	img->array_w = 1;
 	img->array_h = 1;
 
@@ -101,6 +109,10 @@ int parse_options(struct options_t *opts, int argc, char ** argv)
 
 				/* setup next image */
 				setup_image(current_image + 1);
+				break;
+
+			case OPT_LABEL:
+				current_image->label = cag_option_get_value(&context);
 				break;
 
 			case OPT_ARRAY:

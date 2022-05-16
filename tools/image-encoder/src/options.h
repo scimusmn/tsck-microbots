@@ -9,6 +9,7 @@
 
 struct image_settings_t {
 	const char * filename;
+	const char * label;
 
 	size_t array_w, array_h;
 
