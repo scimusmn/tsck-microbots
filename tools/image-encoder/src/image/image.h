@@ -25,6 +25,7 @@ struct gci_t {
 typedef struct rgba_t (*pixel_operation_t)(struct rgba_t, struct rgba_t);
 
 
+struct image_t * allocate_image(size_t width, size_t height);
 struct image_t * load_image(char *filename);
 void free_image(struct image_t *image);
 
@@ -40,6 +41,7 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 
 /* convert an image to the GCI format. */
 struct gci_t * convert_gci(struct image_t *image);
+struct image_t * gci_to_image(struct gci_t *gci);
 void free_gci(struct gci_t *gci);
 
 #endif

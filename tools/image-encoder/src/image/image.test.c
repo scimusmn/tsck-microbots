@@ -5,18 +5,53 @@
 #include "test/lily-test.h"
 #include "image/image.h"
 
+static void test_allocate_image();
 static void test_extract_subimage();
 static void test_combine_images();
 static void test_convert_gci();
+static void test_gci_to_image();
 
 void suite_image()
 {
+	lily_run_test(test_allocate_image);
 	lily_run_test(test_extract_subimage);
 	lily_run_test(test_combine_images);
 	lily_run_test(test_convert_gci);
+	lily_run_test(test_gci_to_image);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+
+/* helper function to generate random images */
+static struct image_t * random_image(size_t seed, size_t width, size_t height)
+{
+	struct image_t *img = allocate_image(width, height);
+	if (img == NULL)
+		return NULL;
+
+	for (int i=0; i<width*height; i++)
+		img->pixels[i] = (struct rgba_t) { rand()%256, rand()%256, rand()%256, rand()%256 };
+	
+	return img;
+}
+
+
+static void test_allocate_image()
+{
+	struct image_t *img = allocate_image(64, 128);
+	lily_assert_not_null(img);
+	lily_assert_not_null(img->pixels);
+	lily_assert_int_equal(img->width, 64);
+	lily_assert_int_equal(img->height, 128);
+
+	/* check to ensure all memory is accessible */
+	for (int i=0; i<img->width * img->height; i++) {
+		img->pixels[i] = (struct rgba_t) { 0, 0, 0, 0 };
+	}
+	
+	free_image(img);
+}
 
 
 static void test_extract_subimage()
@@ -197,4 +232,29 @@ static void test_convert_gci()
 	free_gci(gci);
 }
 
+
+static void test_gci_to_image()
+{
+	struct image_t *img = random_image(15, 1024, 512);
+	lily_assert_not_null(img);
+	struct gci_t *gci = convert_gci(img);
+	lily_assert_not_null(gci);
+	struct image_t *recovered = gci_to_image(gci);
+	lily_assert_not_null(recovered);
+	free_gci(gci);
+
+	lily_assert_int_equal(img->width, recovered->width);
+	lily_assert_int_equal(img->height, recovered->height);
+
+	struct rgba_t *img_px = img->pixels;
+	struct rgba_t *rec_px = recovered->pixels;
+	for (int i=0; i<img->width * img->height; i++) {
+		lily_assert_int_equal(img_px[i].r & 0xf8, rec_px[i].r & 0xf8);
+		lily_assert_int_equal(img_px[i].g & 0xfc, rec_px[i].g & 0xfc);
+		lily_assert_int_equal(img_px[i].b & 0xf8, rec_px[i].b & 0xf8);
+	}
+
+	free_image(img);
+	free_image(recovered);
+}
 

@@ -2,6 +2,32 @@
 #include "image/stb_image.h"
 #include "image/image.h"
 
+struct image_t * allocate_image(size_t width, size_t height)
+{
+	struct image_t *img = malloc(sizeof(struct image_t));
+	if (img == NULL) {
+		fprintf(stderr, 
+		        "ERROR: failed to allocate memory for struct image_t (%lu bytes)\n", 
+		        sizeof(struct image_t));
+		return NULL;
+	}
+
+	img->pixels = malloc(width * height * sizeof(struct rgba_t));
+	if (img->pixels == NULL) {
+		fprintf(stderr,
+		        "ERROR: failed to allocate memory for %lu pixels (%lu bytes)\n",
+				width * height, width * height * sizeof(struct rgba_t));
+		free(img);
+		return NULL;
+	}
+
+	img->width = width;
+	img->height = height;
+
+	return img;
+}
+
+
 struct image_t * load_image(char *filename)
 {
 	/* load image from file */
@@ -13,24 +39,21 @@ struct image_t * load_image(char *filename)
 		return NULL;
 	}
 
-	struct image_t *image = malloc(sizeof(struct image_t));
-	if (image == NULL) {
-		fprintf(stderr, "ERROR: failed to allocated %lu bytes of memory to store image data!\n", sizeof(struct image_t));
-		stbi_image_free((unsigned char *)pixels);
+	/* copy pixel data to struct image_t */
+	struct image_t *img = allocate_image(width, height);
+	if (img == NULL)
 		return NULL;
-	}
-	image->pixels = pixels;
-	image->width = width;
-	image->height = height;
+	memcpy(img->pixels, pixels, width * height * sizeof(struct rgba_t));
+	free(pixels);
 
-	return image;
+	return img;
 }
 
 
-void free_image(struct image_t *image)
+void free_image(struct image_t *img)
 {
-	free(image->pixels);
-	free(image);
+	free(img->pixels);
+	free(img);
 }
 
 
@@ -40,8 +63,8 @@ static int get_index(struct image_t *image, size_t x, size_t y)
 }
 
 /* check if a given point is outside the image */
-static int out_of_range(struct image_t *image, size_t x, size_t y) {
-	if (x > image->width || y > image->height)
+static int out_of_range(struct image_t *image, struct point_t p) {
+	if (p.x > image->width || p.y > image->height)
 		return 1;
 	return 0;
 }
@@ -50,27 +73,18 @@ struct image_t * extract_subimage(struct image_t *image, struct point_t p0, stru
 {
 	/* check if indices are out of range */
 	if (p1.x < p0.x || p1.y < p0.y ||
-	    out_of_range(image, p0.x, p0.y) || out_of_range(image, p1.x, p1.y)) {
+	    out_of_range(image, p0) || out_of_range(image, p1)) {
 		fprintf(stderr, "ERROR: attempted to extract subimage with invalid range (%lu,%lu) - (%lu, %lu)\n",
 			p0.x, p0.y, p1.x, p1.y);
 		return NULL;	
 	}
 
 	/* allocate memory for extracted image */
-	struct image_t *sub_image = malloc(sizeof(struct image_t));
-	if (sub_image == NULL) {
-		fprintf(stderr, "ERROR: failed to allocate memory for sub-image!\n");
+	size_t width = p1.x - p0.x + 1;
+	size_t height = p1.y - p0.y + 1;
+	struct image_t *sub_image = allocate_image(width, height);
+	if (sub_image == NULL)
 		return NULL;
-	}
-
-	sub_image->width = p1.x - p0.x + 1;
-	sub_image->height = p1.y - p0.y + 1;
-	sub_image->pixels = malloc(sub_image->width * sub_image->height * sizeof(struct rgba_t));
-	if (sub_image->pixels == NULL) {
-		fprintf(stderr, "ERROR: failed to allocate memory for sub-image pixel data!\n");
-		free(sub_image);
-		return NULL;
-	}
 
 	/* copy data from source */
 	for (size_t y = p0.y; y<=p1.y; y++) {
@@ -95,23 +109,13 @@ struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_oper
 	}
 
 	/* allocate memory for result */
-	size_t n_pixels = a->width * b->width;
-	struct image_t *output = malloc(sizeof(struct image_t));
-	if (output == NULL) {
-		fprintf(stderr, "ERROR: failed to allocate memory for image struct!\n");
+	struct image_t *output = allocate_image(a->width, a->height);
+	if (output == NULL)
 		return NULL;
-	}
-	output->pixels = malloc(n_pixels * sizeof(struct rgba_t));
-	if (output->pixels == NULL) {
-		fprintf(stderr, "ERROR: failed to allocate memory for pixel array with %lu elements!\n", n_pixels);
-		free(output);
-		return NULL;
-	}
-	output->width = a->width;
-	output->height = a->height;
 
 	/* compute combination */
-	for (int i=0; i<a->width * a->height; i++) {
+	size_t n_pixels = a->width * a->width;
+	for (int i=0; i<n_pixels; i++) {
 		output->pixels[i] = op(a->pixels[i], b->pixels[i]);
 	}
 	
@@ -165,6 +169,25 @@ struct gci_t * convert_gci(struct image_t *image)
 	}
 
 	return output;
+}
+
+
+struct image_t * gci_to_image(struct gci_t *gci)
+{
+	uint8_t *array = gci->array;
+	size_t width = (array[0] << 8) | array[1];
+	size_t height = (array[2] << 8) | array[3];
+	struct image_t *img = allocate_image(width, height);
+
+	for (int i=0; i<width*height; i++) {
+		int index = 2*i+6;
+		img->pixels[i].r = array[index] & 0xf8;
+		img->pixels[i].g = ((array[index] & 0x07) << 5) | ((array[index+1] & 0xe0) >> 3);
+		img->pixels[i].b = (array[index+1] & 0x1f) << 3;
+		img->pixels[i].a = 255;
+	}
+
+	return img;
 }
 
 

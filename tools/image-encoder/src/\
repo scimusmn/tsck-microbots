@@ -31,8 +31,6 @@ int main(int argc, char ** argv)
 
 	/* initialize variables */
 	struct gci_arr_t g;
-	g.n_gci = 0;
-	g.offset = 0;
 	FILE * binary = fopen(opts.file_binary, "wb");
 	FILE * header;
 	if (opts.file_header != NULL)
@@ -75,7 +73,7 @@ static struct rgba_t alpha_blend(struct rgba_t a, struct rgba_t b)
 }
 
 /* convert a subimage into GCI and store with an appropriate label */
-static void process_subimage(struct gci_arr_t *g, struct image_t *base, char *base_label, struct image_t *bg, 
+static void process_subimage(struct gci_arr_t *g, char *base_label, struct image_t *bg, 
                              size_t w, size_t h, int x, int y, int omit_array_label) {
 	/* extract subimage */
 	struct point_t p0 = { w*x, h*y };
@@ -95,7 +93,7 @@ static void process_subimage(struct gci_arr_t *g, struct image_t *base, char *ba
 	if (omit_array_label)
 		sprintf(label, "%s", base_label); /* for single images, don't include array labels */
 	else
-		sprintf(label, "%s_%dx%d", base_label, x, y);
+		sprintf(label, "%s%dx%d", base_label, x, y);
 
 	/* convert to gci */
 	struct gci_t *gci = convert_gci(img);
@@ -149,7 +147,7 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 	/* process sub-images */
 	for (int y = 0; y<settings.array_h; y++) {
 		for (int x = 0; x<settings.array_w; x++) {
-			process_subimage(g, base, label, sub_bg, w, h, x, y, omit_array_label);
+			process_subimage(g, label, sub_bg, w, h, x, y, omit_array_label);
 		}
 	}
 
