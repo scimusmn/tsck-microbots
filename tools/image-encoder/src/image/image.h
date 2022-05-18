@@ -1,6 +1,7 @@
 #ifndef TOOL_IMAGE_H
 #define TOOL_IMAGE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 struct point_t {

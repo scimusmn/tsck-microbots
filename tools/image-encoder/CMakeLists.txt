@@ -20,6 +20,8 @@ add_executable(test-image-encoder
 	src/test/lily-test.c
 	src/image/image.c
 	src/image/image.test.c
+	src/processing/proc.c
+	src/processing/proc.test.c
 	src/test/tests.c)
 
 target_compile_definitions(test-image-encoder PUBLIC SOURCE_PATH_SIZE=65)
