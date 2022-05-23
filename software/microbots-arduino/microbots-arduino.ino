@@ -37,10 +37,23 @@ unsigned long digit3[] = { digit3_0x0, digit3_1x0, digit3_2x0, digit3_3x0, digit
 
 
 void display_digits(int d0, int d1, int d2, int d3) {
-	screen.fs_seek_display_image(images, digit0[d0], 212, 297, NULL, NULL);
-	screen.fs_seek_display_image(images, digit1[d1], 293, 297, NULL, NULL);
-	screen.fs_seek_display_image(images, digit2[d2], 374, 297, NULL, NULL);
-	screen.fs_seek_display_image(images, digit3[d3], 455, 297, NULL, NULL);
+	screen.fs_seek_display_image(images, digit0[d0], 192, 297, NULL, NULL);
+	screen.fs_seek_display_image(images, digit1[d1], 273, 297, NULL, NULL);
+	screen.fs_seek_display_image(images, colon,      354, 297, NULL, NULL);
+	screen.fs_seek_display_image(images, digit2[d2], 435, 297, NULL, NULL);
+	screen.fs_seek_display_image(images, digit3[d3], 516, 297, NULL, NULL);
+}
+
+void display_time(unsigned long start) {
+	unsigned long t = (millis() - start) / 1000;
+	unsigned long seconds = t % 60;
+	unsigned long minutes = t / 60;
+
+	int m0 = minutes / 10;
+	int m1 = minutes % 10;
+	int s0 = seconds / 10;
+	int s1 = seconds % 10;
+	display_digits(m0, m1, s0, s1);
 }
 
 void setup() {
@@ -80,9 +93,11 @@ void setup() {
 	screen.touch_enable();
 
 	screen.fs_seek_display_image(images, background, 0, 0, NULL, NULL);
-	display_digits(0, 1, 2, 3);
 }
 
 void loop() {
-	
+	static unsigned long start = millis();
+
+	display_time(start);
+	delay(20);
 }
