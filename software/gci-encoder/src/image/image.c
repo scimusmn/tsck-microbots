@@ -114,8 +114,8 @@ struct image_t * combine_images(struct image_t *a, struct image_t *b, pixel_oper
 		return NULL;
 
 	/* compute combination */
-	size_t n_pixels = a->width * a->width;
-	for (int i=0; i<n_pixels; i++) {
+	size_t n_pixels = a->width * a->height;
+	for (size_t i=0; i<n_pixels; i++) {
 		output->pixels[i] = op(a->pixels[i], b->pixels[i]);
 	}
 	
