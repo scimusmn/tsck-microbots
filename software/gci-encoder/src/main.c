@@ -71,6 +71,7 @@ static void process_subimage(struct gci_arr_t *g, struct image_t *base, char *ba
 	struct point_t p1 = p0;
 	p1.x += w-1; p1.y += h-1;
 	struct image_t *img = extract_subimage(base, p0, p1);
+	printf("\tsubimage (%d, %d): (%lux%lu)\n", x, y, img->width, img->height);
 	
 	if (bg != NULL) {
 		add_background(&img, bg);
@@ -118,6 +119,8 @@ void process_image(struct gci_arr_t *g, struct image_settings_t settings)
 	struct image_t *bg = NULL;
 	if (settings.background_image != NULL)
 		bg = load_image(settings.background_image);
+
+	printf("%s: (%lux%lu)\n", settings.filename, base->width, base->height);
 	
 	/* compute constants */
 	size_t w = base->width / settings.array_w;

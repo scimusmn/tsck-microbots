@@ -72,7 +72,7 @@ namespace smm {
 			word seek_args[] = {
 				handle,
 				0x0000,
-				0x59e2,
+				0x0000,
 			};
 			word error;
 			r = command_response(0xfe4f, seek_args, 3, &error);
@@ -176,7 +176,7 @@ namespace smm {
 		}
 
 		enum serial_result_t seek_file(word handle, word hi, word lo, word *status) {
-			empty_serial_buffer()
+			empty_serial_buffer();
 			send_word(0xfe4f);
 			send_word(handle);
 			send_word(hi); send_word(lo);
