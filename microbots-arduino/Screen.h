@@ -14,9 +14,7 @@ namespace smm {
 		       unsigned int width=800,
 		       unsigned int height=480)
 			: mSerial(rxPin, txPin),
-			  mResetPin(resetPin),
-			  mWidth(width), mHeight(height), mPosition(0),
-			  mPrevious(-1)
+			  mResetPin(resetPin)
 		{}
 
 		void setup()
@@ -34,15 +32,15 @@ namespace smm {
 			enum serial_result_t r;
 
 			/* set screen to landscape mode */
-			byte landscape[] = {0, 0};
-			r = command_response(0xff, 0x42, landscape, 2, NULL);
+			word landscape = 0;
+			r = command_response(0xff42, &landscape, 1, NULL);
 			if (r != SR_OK)
 				serial_printf("screen mode failed: %d\n", r);
 			else
 				serial_printf("set screen to landscape\n");
 
 			/* clear screen */
-			r = command(0xff, 0x82, NULL, 0);
+			r = command(0xff82, NULL, 0);
 			if (r != SR_OK)
 				serial_printf("clear screen failed: %d\n", r);
 			else
@@ -50,7 +48,7 @@ namespace smm {
 
 			/* mount FAT16 fs */
 			word success;
-			r = command_response(0xfe, 0x3c, NULL, 0, &success);
+			r = command_response(0xfe3c, NULL, 0, &success);
 			if (r != SR_OK)
 				serial_printf("mount fs failed: %d\n", r);
 			else if (success == 0)
@@ -60,9 +58,9 @@ namespace smm {
 
 
 			/* open image file */
-			const char * fname = "microb~1.gci\0r";
 			word handle;
-			r = command_response(0x00, 0x0a, (byte*) fname, 14, &handle);
+			const char *fname = "images.gci";
+			r = open_file(fname, 'r', &handle);
 			if (r != SR_OK)
 				serial_printf("open '%s' failed: %d\n", fname, r);
 			else if (handle == 0)
@@ -70,19 +68,34 @@ namespace smm {
 			else
 				serial_printf("opened '%s'\n", fname);
 
+			/* seek to image */
+			word seek_args[] = {
+				handle,
+				0x0000,
+				0x59e2,
+			};
+			word error;
+			r = command_response(0xfe4f, seek_args, 3, &error);
+			if (r != SR_OK)
+				serial_printf("file seek failed: %d\n", r);
+			else if (error != 0)
+				serial_printf("file seek failed due to file error: %d\n", error);
+			else
+				serial_printf("file seek done\n");
+
 
 			/* display image */
-			word error;
-			byte xy_handle[] = {
-				0, 0, /* x pos */
-				0, 0, /* y pos */
-				handle >> 8, handle,
+			error;
+			word xy_handle[] = {
+				0x0100, /* x pos */
+				0x0100, /* y pos */
+				handle,
 			};
-			r = command_response(0xfe, 0x4a, xy_handle, 6, &error);
+			r = command_response(0xfe4a, xy_handle, 3, &error);
 			if (r != SR_OK)
 				serial_printf("display image failed: %d\n", r);
 			else if (error != 0)
-				serial_printf("display image failed due to file error: %d\n");
+				serial_printf("display image failed due to file error: %d\n", error);
 			else
 				serial_printf("displayed image\n");
 		}
@@ -97,6 +110,11 @@ namespace smm {
 			SR_NOACK,
 			SR_TIMEOUT,
 		};
+
+		void send_word(word w) {
+			mSerial.write(w >> 8);
+			mSerial.write(w);
+		}
 
 		/* destroy existing values in the serial buffer */
 		void empty_serial_buffer() {
@@ -129,21 +147,42 @@ namespace smm {
 			return SR_TIMEOUT;
 		}
 
-		enum serial_result_t command(byte hi, byte lo, byte *data, size_t num) {
+		enum serial_result_t command(word c, word *data, size_t num) {
 			empty_serial_buffer();
-			mSerial.write(hi);
-			mSerial.write(lo);
+			send_word(c);
 			for (int i=0; i<num; i++)
-				mSerial.write(data[i]);
+				send_word(data[i]);
 			mSerial.flush();
 			return getack();
 		}
 
-		enum serial_result_t command_response(byte hi, byte lo, byte *data, size_t num, word *response) {
-			enum serial_result_t r = command(hi, lo, data, num);
+		enum serial_result_t command_response(word c, word *data, size_t num, word *response) {
+			enum serial_result_t r = command(c, data, num);
 			if (r != SR_OK) return r;
 			r = getword(response);
 			return r;
+		}
+
+		enum serial_result_t open_file(const char *filename, char mode, word *handle) {
+			empty_serial_buffer();
+			send_word(0x000a);
+			mSerial.write(filename, strlen(filename)+1);
+			mSerial.write(mode);
+			mSerial.flush();
+			enum serial_result_t r = getack();
+			if (r != SR_OK) return r;
+			r = getword(handle);
+			return r;
+		}
+
+		enum serial_result_t seek_file(word handle, word hi, word lo, word *status) {
+			empty_serial_buffer()
+			send_word(0xfe4f);
+			send_word(handle);
+			send_word(hi); send_word(lo);
+			enum serial_result_t r = getack();
+			if (r != SR_OK) return r;
+			return getword(status);
 		}
 
 		void serial_printf(const char *format, ...) {
