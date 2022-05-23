@@ -10,6 +10,7 @@ add_executable(image-encoder
 	src/main.c
 	src/cargs/cargs.c
 	src/image/image.c
+	src/processing/proc.c
 	src/options.c)
 
 target_link_libraries(image-encoder m)

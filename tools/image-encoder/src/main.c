@@ -63,17 +63,6 @@ int main(int argc, char ** argv)
 }
 
 
-/* lerp pixels by the first pixel's alpha value */
-static struct rgba_t alpha_blend(struct rgba_t a, struct rgba_t b)
-{
-	struct rgba_t result;
-	result.r = (a.a*a.r) + ((255-a.a)*b.r);
-	result.g = (a.a*a.g) + ((255-a.a)*b.g);
-	result.b = (a.a*a.b) + ((255-a.a)*b.b);
-	result.a = 255;
-	return result;
-}
-
 /* convert a subimage into GCI and store with an appropriate label */
 static void process_subimage(struct gci_arr_t *g, struct image_t *base, char *base_label, struct image_t *bg, 
                              size_t w, size_t h, int x, int y, int omit_array_label) {
@@ -84,10 +73,7 @@ static void process_subimage(struct gci_arr_t *g, struct image_t *base, char *ba
 	struct image_t *img = extract_subimage(base, p0, p1);
 	
 	if (bg != NULL) {
-		/* add background */
-		struct image_t *tmp = combine_images(img, bg, alpha_blend);
-		free_image(img);
-		img = tmp;
+		add_background(&img, bg);
 	}
 
 	/* set label */
