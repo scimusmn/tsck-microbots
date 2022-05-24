@@ -3,15 +3,14 @@
 #include "DiabloSerial.h"
 #include "offsets.h"
 
-#define TX_PIN 3
-#define RX_PIN 2
 #define RST_PIN 4
 
-SoftwareSerial diablo(RX_PIN, TX_PIN);
-DiabloSerial screen(diablo, RST_PIN);
+DiabloSerial screen(Serial1, RST_PIN);
 
 #define CHECK_ERROR() \
-	if (r != DiabloSerial::serial_result_t::SR_OK) serial_printf("ERROR: %d", r);
+	if (r != DiabloSerial::serial_result_t::SR_OK) \
+		if (r == DiabloSerial::serial_result_t::SR_NOACK) serial_printf("!! NOACK !!\n"); \
+		else serial_printf("!! TIMEOUT !!\n");
 
 void serial_printf(const char *format, ...) {
 	va_list args;
@@ -60,7 +59,7 @@ void setup() {
 	enum DiabloSerial::serial_result_t r;
 
 	Serial.begin(115200);
-	diablo.begin(9600);
+	Serial1.begin(9600);
 	Serial.println("=== ARDUINO BOOT ===");
 
 	serial_printf("reset screen\n");
@@ -74,8 +73,9 @@ void setup() {
 	serial_printf("set landscape\n");
 	r = screen.gfx_set_landscape();
 	CHECK_ERROR();
+	delay(2);
 
-	word error;
+	word error = 0;
 	serial_printf("mount fs\n");
 	r = screen.fs_mount(&error);
 	CHECK_ERROR();
@@ -93,6 +93,12 @@ void setup() {
 	screen.touch_enable();
 
 	screen.fs_seek_display_image(images, background, 0, 0, NULL, NULL);
+
+	byte header[6];
+	screen.fs_seek_file(images, 0, 0, NULL);
+	screen.fs_read_file(images, header, 6, NULL);
+	serial_printf("%02x %02x %02x %02x %02x %02x\n",
+		header[0], header[1], header[2], header[3], header[4], header[5]);
 }
 
 void loop() {

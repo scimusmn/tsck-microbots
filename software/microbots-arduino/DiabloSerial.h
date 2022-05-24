@@ -106,6 +106,23 @@ class DiabloSerial {
 		return fs_display_image(handle, x, y, status_display);
 	}
 
+	enum serial_result_t fs_read_file(word handle, byte *dest, size_t n_bytes, word *count) {
+		byte data[4];
+		split(n_bytes, data+0, data+1);
+		split(handle, data+2, data+3);
+		enum serial_result_t r = send_command(0x000c, data, 4);
+		if (r != SR_OK) return r;
+
+		r = getword(count);
+		if (r != SR_OK) return r;
+
+		for (size_t i=0; i<*count; i++) {
+			r = getbyte(dest+i);
+			if (r != SR_OK) return r;
+		}
+		return SR_OK;
+	}
+
 
 	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 *
@@ -172,16 +189,24 @@ class DiabloSerial {
 		while(serial.available()) serial.read();
 	}
 
-	/* check for ACK byte */
-	enum serial_result_t getack() {
+	/* read a byte from the screen */
+	enum serial_result_t getbyte(byte *b) {
 		WHILE_NOT_TIMEOUT() {
 			if (serial.available()) {
-				byte b = serial.read();
-				if (b == 0x06) return SR_OK;
-				else return SR_NOACK;
+				if (b != NULL) *b = serial.read();
+				return SR_OK;
 			}
 		}
 		return SR_TIMEOUT;
+	}
+
+	/* check for ACK byte */
+	enum serial_result_t getack() {
+		byte b;
+		enum serial_result_t r = getbyte(&b);
+		if (r != SR_OK) return r;
+		if (b != 0x06) return SR_NOACK;
+		return SR_OK;
 	}
 
 	/* read a word from screen */
