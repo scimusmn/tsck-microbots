@@ -1,12 +1,16 @@
+#pragma once
+
 #include <Arduino.h>
 #include "DiabloSerial.h"
+#include "CheckError.h"
 
-#define CHECK_ERR(r) if (r != DiabloSerial::serial_result_t::SR_OK) { \
-	Serial.print("command failed!"); \
-	Serial.println(r); \
-	Serial.println(__LINE__); \
-	return false; \
-}
+#define PATH_CHECK_ERR(r) CHECK_ERROR("Path: ", r)
+#define PATH_LOG(msg) LOG("[Path] ", msg)
+
+struct PathPoint {
+	byte x, y;
+};
+
 
 class Path {
 	public:
@@ -15,45 +19,54 @@ class Path {
 	bool load(DiabloSerial& serial, const char * filename) {
 		word handle = 0;
 		enum DiabloSerial::serial_result_t r;
+		PATH_LOG("Open path file");
 		r = serial.fs_open_file(&handle, filename, 'r');
-		Serial.println(handle);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 
 		/* read path info */
+		PATH_LOG("Read path data");
 		n_points = 0;
 		word status;
 		r = serial.fs_read_file(handle, &n_points, 1, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_seek_file(handle, 0, 1, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_read_file(handle, (byte*) path, 2*n_points, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 
 		/* read obstruction info */
+		PATH_LOG("Read obstruction data");
 		int offset = 2*n_points + 1;
 		r = serial.fs_seek_file(handle, 0, offset, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_read_file(handle, obstruction, 512, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
+		PATH_LOG("Done: read block 0");
+		
 		offset += 512;
 		r = serial.fs_seek_file(handle, 0, offset, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_read_file(handle, obstruction+512, 512, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
+		PATH_LOG("Done: read block 1");
+
 		offset += 512;
 		r = serial.fs_seek_file(handle, 0, offset, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_read_file(handle, obstruction+1024, 512, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
+		PATH_LOG("Done: read block 2");
+		
 		offset += 512;
 		r = serial.fs_seek_file(handle, 0, offset, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		r = serial.fs_read_file(handle, obstruction+1536, 512, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
+		PATH_LOG("Done: read block 3");
 
 		/* close file */
 		r = serial.fs_close_file(handle, &status);
-		CHECK_ERR(r);
+		PATH_CHECK_ERR(r);
 		return true;
 	}
 
@@ -65,6 +78,20 @@ class Path {
 			Serial.print(path[i].y);
 			Serial.println(")");
 		}
+	}
+
+	PathPoint getPathPoint(int index) {
+		if (index < 0) {
+			index = n_points - index;
+		}
+		return path[index];
+	}
+
+	int isObstructed(int x, int y) {
+		int rowOffset = 16*y;
+		int colOffset = x/8;
+		int bitOffset = 7 - (x%8);
+		return obstruction[rowOffset + colOffset] & (1 << bitOffset);
 	}
 
 	void print_obstruction() {
@@ -79,9 +106,7 @@ class Path {
 
 	private:
 	byte n_points;
-	struct path_point {
-		byte x, y;
-	} path[128];
+	PathPoint path[128];
 
 	byte obstruction[2048];
 };
