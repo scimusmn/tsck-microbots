@@ -9,3 +9,4 @@ a.out
 *.swp
 tools/image-encoder/build
 software/gci-encoder/build
+software/path-encoder/build
