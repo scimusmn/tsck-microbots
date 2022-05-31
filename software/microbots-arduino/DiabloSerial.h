@@ -29,6 +29,28 @@ class DiabloSerial {
 		delay(3000);
 	}
 
+	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 *
+	 * TEXT COMMANDS
+	 *
+	 * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 */
+
+	enum serial_result_t putstr(char *str) {
+		int len = strlen(str) + 1;
+		return send_command(0x0018, (byte) str, len);
+	}
+
+	enum serial_result_t printf(const char *format, ...) {
+		va_list args;
+		va_start(args, format);
+		char str[256];
+		vsprintf(str, format, args);
+		va_end(args);
+
+		return putstr(str);
+	}
+
 	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 	 *
 	 * GRAPHICS COMMANDS
@@ -74,6 +96,15 @@ class DiabloSerial {
 		enum serial_result_t r = send_command(0x000a, data, length+2);
 		if (r != SR_OK) return r;
 		return getword(handle);
+	}
+
+	enum serial_result_t fs_close_file(word *handle, word *status) {
+		byte data[2];
+		split(handle, data+0, data+1);
+
+		enum serial_result_t r = send_command(0xfe51, data, 2);
+		if (r != SR_OK) return r;
+		return getword(status);
 	}
 
 	enum serial_result_t fs_seek_file(word handle, word hi, word lo, word *status) {

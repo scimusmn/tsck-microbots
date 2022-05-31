@@ -1,6 +1,7 @@
 #include <SoftwareSerial.h>
 
 #include "DiabloSerial.h"
+#include "Path.h"
 #include "offsets.h"
 
 #define RST_PIN 4
@@ -35,6 +36,9 @@ unsigned long digit3[] = { digit3_0x0, digit3_1x0, digit3_2x0, digit3_3x0, digit
                            digit3_5x0, digit3_6x0, digit3_7x0, digit3_8x0, digit3_9x0 };
 
 
+byte path_data[2048];
+
+
 void display_digits(int d0, int d1, int d2, int d3) {
 	screen.fs_seek_display_image(images, digit0[d0], 192, 297, NULL, NULL);
 	screen.fs_seek_display_image(images, digit1[d1], 273, 297, NULL, NULL);
@@ -57,6 +61,7 @@ void display_time(unsigned long start) {
 
 void setup() {
 	enum DiabloSerial::serial_result_t r;
+	Path path;
 
 	Serial.begin(115200);
 	Serial1.begin(9600);
@@ -91,14 +96,15 @@ void setup() {
 	serial_printf("file error: %d\n", error);
 
 	screen.touch_enable();
-
 	screen.fs_seek_display_image(images, background, 0, 0, NULL, NULL);
 
-	byte header[6];
-	screen.fs_seek_file(images, 0, 0, NULL);
-	screen.fs_read_file(images, header, 6, NULL);
-	serial_printf("%02x %02x %02x %02x %02x %02x\n",
-		header[0], header[1], header[2], header[3], header[4], header[5]);
+	delay(10);
+
+	if(path.load(screen, "path.bin")) {
+		path.print_path();
+		path.print_obstruction();
+	}
+	else Serial.println("load path failed!");
 }
 
 void loop() {
