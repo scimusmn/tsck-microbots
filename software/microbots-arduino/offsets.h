@@ -43,5 +43,8 @@
 #define digit3_7x0		0x190f92
 #define digit3_8x0		0x196974
 #define digit3_9x0		0x19c356
+#define health_good		0x1a1d38
+#define health_bad		0x1a2d52
+#define heart		0x1a3d6c
 
 #endif

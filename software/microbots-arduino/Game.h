@@ -58,10 +58,28 @@ class ScreenView {
 		SV_LOG("Open image file");
 		r = screen.fs_open_file(&imgFile, "images.gci", 'r');
 		SV_CHECK_ERROR(r);
+
+		displayBackground();
+		displayHeart();
+		displayHealth(4);
+		displayDigits(0,0,0,0);
 	}
 
 	void displayBackground() {
 		screen.fs_seek_display_image(imgFile, background, 0, 0, NULL, NULL);
+	}
+
+	void displayHeart() {
+		screen.fs_seek_display_image(imgFile, heart, 340, 61, NULL, NULL);
+	}
+
+	void displayHealth(int health) {
+		/* step: 53 */
+		for (int i=0; i<8; i++) {
+			int x = 585 - (53*i);
+			long image = (health > i) ? health_good : health_bad;
+			screen.fs_seek_display_image(imgFile, image, x, 196, NULL, NULL);
+		}
 	}
 
 	void displayDigits(int d0, int d1, int d2, int d3) {
@@ -118,7 +136,6 @@ class GameController {
 		screenView.init();
 		model.init();
 
-		screenView.displayBackground();
 		model.dump();
 		GC_LOG("Init complete");
 	}
