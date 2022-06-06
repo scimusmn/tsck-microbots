@@ -70,6 +70,12 @@ class Path {
 		return true;
 	}
 
+	void printByte(byte b) {
+		for (int i=7; i>=0; i--) {
+			Serial.print((b >> i) & 0x01);
+		}
+	}
+
 	void print_path() {
 		for (int i=0; i<n_points; i++) {
 			Serial.print("(");
@@ -78,6 +84,10 @@ class Path {
 			Serial.print(path[i].y);
 			Serial.println(")");
 		}
+	}
+
+	int getNumPoints() {
+		return n_points;
 	}
 
 	PathPoint getPathPoint(int index) {
@@ -97,7 +107,7 @@ class Path {
 	void print_obstruction() {
 		for (int y=0; y<128; y++) {
 			for (int i=0; i<16; i++) {
-				Serial.print(obstruction[16*y + i], BIN);
+				printByte(obstruction[16*y + i]);
 				Serial.print(" ");
 			}
 			Serial.println();

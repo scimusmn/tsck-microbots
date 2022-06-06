@@ -1,6 +1,7 @@
 #include <SoftwareSerial.h>
 
 #include "Game.h"
+#include "Joystick.h"
 
 GameController game;
 
@@ -9,4 +10,6 @@ void setup() {
 	game.init();
 }
 
-void loop() {}
+void loop() {
+	game.update();
+}
