@@ -1,6 +1,10 @@
 #!/bin/bash
 
 gci \
+	--label "attract-screen" -i attract-screen.png \
+	--label "success-screen" -i success-screen.png \
+	--label "game-over-screen" -i game-over-screen.png \
+	--label "resetting-screen" -i resetting-screen.png \
 	--label "background" -i gradient-bg.png \
 	--label "digit0" --background "gradient-bg.png" --offset 192x297 --array 10x1 -i digits.png \
 	--label "digit1" --background "gradient-bg.png" --offset 273x297 --array 10x1 -i digits.png \

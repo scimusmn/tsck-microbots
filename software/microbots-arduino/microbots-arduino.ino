@@ -1,7 +1,6 @@
 #include <SoftwareSerial.h>
 
 #include "Game.h"
-#include "Joystick.h"
 
 GameController game;
 

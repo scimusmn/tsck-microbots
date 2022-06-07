@@ -76,6 +76,10 @@ class GameModel {
 		return path.isObstructed(x, y);
 	}
 
+	PathPoint getEndPoint() {
+		return endPoint;
+	}
+
 	void dump() {
 		GM_LOG("Path:");
 		path.print_path();
@@ -166,6 +170,16 @@ class GameController {
 		x = stepsToPixels(x, STEPS_X);
 		y = stepsToPixels(y, STEPS_Y);
 
+		PathPoint end = model.getEndPoint();
+		if (sq(x - end.x) + sq(y - end.y) < 50) {
+			magnets.stop();
+			screenView.displaySuccessScreen();
+			delay(5000);
+			screenView.displayResetScreen();
+			model.gameState = GameModel::GameState::RESETTING;
+			return;
+		}
+
 		if (updateTouch.triggered()) {
 			// check for touch
 			if (screenView.touched()) {
@@ -195,6 +209,8 @@ class GameController {
 			model.gameState = GameModel::GameState::RESETTING;
 			return;
 		}
+
+
 
 		if (joy.hasChanged()) {
 			int dir = joy.getDirection();
@@ -260,7 +276,7 @@ class GameController {
 			PathPoint pt = model.getPathPoint(i);
 			Serial.print("[GameController] Next path point: (");
 			Serial.print(pt.x); Serial.print(", "); Serial.print(pt.y); Serial.println(")");
-			table.moveTo(pixelsToSteps(pt.x, STEPS_X), pixelsToSteps(pt.y, STEPS_Y), 400);
+			table.moveTo(pixelsToSteps(pt.x, STEPS_X), pixelsToSteps(pt.y, STEPS_Y), 800);
 		}
 		magnets.stop();
 
@@ -313,10 +329,10 @@ class GameController {
 			return 0;
 		}
 		else if (dir & pos) {
-			return 400;
+			return 800;
 		}
 		else {
-			return -400;
+			return -800;
 		}
 	}
 };
