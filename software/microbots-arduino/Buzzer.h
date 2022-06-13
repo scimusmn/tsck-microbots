@@ -2,8 +2,8 @@
 
 #include <Arduino.h>
 
-typedef enum {
-	C, D, E, F, G, A, B, C5,
+typedef enum Note {
+	C, D, Eb, E, F, G, A, B, C5,
 } Note;
 
 struct SongNote {
@@ -35,6 +35,13 @@ class Buzzer {
 		}
 	}
 
+	void playNoteNonBlocking(Note note, unsigned long duration) {
+		int frequency = getFrequency(note);
+		if (frequency < 0) return;
+
+		tone(pin, frequency, duration);
+	}
+
 	protected:
 	int pin;
 
@@ -45,6 +52,9 @@ class Buzzer {
 
 			case Note::D:
 			return 294;
+
+			case Note::Eb:
+			return 311;
 
 			case Note::E:
 			return 330;

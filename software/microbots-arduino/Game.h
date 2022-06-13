@@ -10,6 +10,7 @@
 #include "XYTable.h"
 #include "Joystick.h"
 #include "IntervalTimer.h"
+#include "Buzzer.h"
 
 /* screen constants */
 #define RESET_PIN 13
@@ -28,6 +29,22 @@
 #define JOY_RIGHT 10
 #define JOY_DOWN 11
 #define JOY_LEFT 12
+
+/* buzzer constants */
+#define BUZZER_PIN 6
+const SongNote winningSong[] = {
+    { Note::C, 100 },
+    { Note::E, 100 },
+    { Note::G, 100 },
+    { Note::E, 100 },
+    { Note::C5, 500 },	 
+};
+const SongNote losingSong[] = {
+    { Note::G, 200 },
+    { Note::Eb, 250 },
+    { Note::D, 300 },
+    { Note::C, 500 },
+};
 
 /* logging macros */
 #define GM_LOG(msg) LOG("[GameModel] ", msg)
@@ -62,6 +79,7 @@ class GameModel {
 		gameState = PLAYING;
 		health = 8;
 		startTime = millis();
+		alertNote = Note::C;
 	}
 
 	PathPoint getPathPoint(int index) {
@@ -102,12 +120,18 @@ class GameModel {
 		*minutes = s / 60;
 	}
 
+	Note getAlertNote() {
+		alertNote = (Note) ( ((int) alertNote) + 1 );
+		return alertNote;
+	}
+
 	protected:
 	DiabloSerial& screen;
 	Path path;
 	PathPoint endPoint;
 	int health;
 	unsigned long startTime;
+	Note alertNote;
 };
 
 
@@ -119,7 +143,9 @@ class GameController {
 		  screenView(screen), 
 		  magnets(MAGNET_A, MAGNET_B),
 		  joy(JOY_UP, JOY_RIGHT, JOY_DOWN, JOY_LEFT),
-		  updateTimeView(1000), updateHealth(1000), updateTouch(200)
+		  updateTimeView(1000), updateHealth(1000), updateTouch(200),
+		  buzzer(BUZZER_PIN),
+		  moving(false)
 	{}
 
 	init() {
@@ -174,13 +200,14 @@ class GameController {
 		if (sq(x - end.x) + sq(y - end.y) < 50) {
 			magnets.stop();
 			screenView.displaySuccessScreen();
+			buzzer.playSong(winningSong, N_NOTES(winningSong));
 			delay(5000);
 			screenView.displayResetScreen();
 			model.gameState = GameModel::GameState::RESETTING;
 			return;
 		}
 
-		if (updateTouch.triggered()) {
+		if ((!moving) && updateTouch.triggered()) {
 			// check for touch
 			if (screenView.touched()) {
 				screenView.displayResetScreen();
@@ -198,12 +225,14 @@ class GameController {
 
 		if (updateHealth.triggered() && model.isObstructed(x, y)) {
 			model.reduceHealth();
+			buzzer.playNoteNonBlocking(model.getAlertNote(), 100);
 			screenView.displayHealth(model.getHealth());
 		}
 
 		if (model.getHealth() <= 0) {
 			magnets.stop();
 			screenView.displayGameOverScreen();
+			buzzer.playSong(losingSong, N_NOTES(losingSong));
 			delay(5000);
 			screenView.displayResetScreen();
 			model.gameState = GameModel::GameState::RESETTING;
@@ -214,6 +243,8 @@ class GameController {
 
 		if (joy.hasChanged()) {
 			int dir = joy.getDirection();
+			if (dir != 0) moving = true;
+			else moving = false;
 			Serial.println(dir, BIN);
 
 			if (dir & Joystick::LEFT) magnets.runLeft();
@@ -312,6 +343,8 @@ class GameController {
 	MagnetMotor magnets;
 	DiabloSerial screen;
 	Joystick joy;
+	Buzzer buzzer;
+	bool moving;
 
 	IntervalTimer updateTimeView, updateHealth, updateTouch;
 
