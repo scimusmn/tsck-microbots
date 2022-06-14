@@ -18,7 +18,7 @@
 
 /* space constants */
 #define STEPS_X 17500
-#define STEPS_Y 14000
+#define STEPS_Y 14700
 
 /* motor constants */
 #define MAGNET_A 5
