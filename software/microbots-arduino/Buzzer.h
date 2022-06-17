@@ -29,6 +29,16 @@ class Buzzer {
 		delay(50);
 	}
 
+	void play(Note note) {
+		int frequency = getFrequency(note);
+		if (frequency < 0) return;
+		tone(pin, frequency);
+	}
+
+	void quiet() {
+		noTone(pin);
+	}
+
 	void playSong(struct SongNote *song, unsigned int numNotes) {
 		for (int i=0; i<numNotes; i++) {
 			playNote(song[i].note, song[i].duration);

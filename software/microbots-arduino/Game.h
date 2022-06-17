@@ -18,7 +18,7 @@
 
 /* space constants */
 #define STEPS_X 17500
-#define STEPS_Y 14700
+#define STEPS_Y 14000
 
 /* motor constants */
 #define MAGNET_A 5
@@ -197,7 +197,7 @@ class GameController {
 		y = stepsToPixels(y, STEPS_Y);
 
 		PathPoint end = model.getEndPoint();
-		if (sq(x - end.x) + sq(y - end.y) < 50) {
+		if (sq(x - end.x) + sq(y - end.y) < 4) {
 			magnets.stop();
 			screenView.displaySuccessScreen();
 			buzzer.playSong(winningSong, N_NOTES(winningSong));
@@ -223,9 +223,22 @@ class GameController {
 			screenView.displayDigits(min/10, min%10, sec/10, sec%10);
 		}
 
+		static bool beeping = false;
+		if (model.isObstructed(x, y)) {
+			if (!beeping) {
+				buzzer.play(Note::E);
+				beeping = true;
+			}
+		}
+		else {
+			if (beeping) {
+				buzzer.quiet();
+				beeping = false;
+			}
+		}
+
 		if (updateHealth.triggered() && model.isObstructed(x, y)) {
 			model.reduceHealth();
-			buzzer.playNoteNonBlocking(model.getAlertNote(), 100);
 			screenView.displayHealth(model.getHealth());
 		}
 
