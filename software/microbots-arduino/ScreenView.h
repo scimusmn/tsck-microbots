@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 #include "DiabloSerial.h"
+#include "offsets.h"
+#include "CheckError.h"
 
 
 #define SV_CHECK_ERROR(r) CHECK_ERROR("ScreenView: ", r)
@@ -11,9 +13,28 @@
 class ScreenView {
 	public:
 	ScreenView(DiabloSerial& screen) : screen(screen) {}
-	void init() {
+	bool init() {
 		word error;	
 		enum DiabloSerial::serial_result_t r;
+
+		SV_LOG("Reset screen");
+		screen.reset();
+		SV_LOG("Clear screen");
+		r = screen.gfx_clear_screen();
+		SV_CHECK_ERROR(r);
+		SV_LOG("Set landscape");
+		r = screen.gfx_set_landscape();
+		SV_CHECK_ERROR(r);
+		delay(10); // give the screen time to adjust
+
+		SV_LOG("Mount filesystem");
+		r = screen.fs_mount(&error);
+		SV_CHECK_ERROR(r);
+		if (error == 0) {
+			Serial.println("failed to mount filesystem!");
+			return false;
+		}
+
 
 		SV_LOG("Enable touch");
 		r = screen.touch_enable();
@@ -55,25 +76,19 @@ class ScreenView {
 		screen.fs_seek_display_image(imgFile, background, 0, 0, NULL, NULL);
 	}
 
-	void displayHeart() {
-		screen.fs_seek_display_image(imgFile, heart, 340, 61, NULL, NULL);
-	}
-
 	void displayHealth(int health) {
-		/* step: 53 */
-		for (int i=0; i<8; i++) {
-			int x = 585 - (53*i);
-			long image = (health > i) ? health_good : health_bad;
-			screen.fs_seek_display_image(imgFile, image, x, 196, NULL, NULL);
-		}
+		int index = health;
+		if (index < 0) index = 0;
+		if (index > 9) index = 9;
+		screen.fs_seek_display_image(imgFile, heart[index], 232, 97, NULL, NULL);
 	}
 
 	void displayDigits(int d0, int d1, int d2, int d3) {
-	    screen.fs_seek_display_image(imgFile, digit0[d0], 192, 297, NULL, NULL);
-	    screen.fs_seek_display_image(imgFile, digit1[d1], 273, 297, NULL, NULL);
-	    screen.fs_seek_display_image(imgFile, colon,      354, 297, NULL, NULL);
-	    screen.fs_seek_display_image(imgFile, digit2[d2], 435, 297, NULL, NULL);
-	    screen.fs_seek_display_image(imgFile, digit3[d3], 516, 297, NULL, NULL);
+	    screen.fs_seek_display_image(imgFile, digit0[d0],  22, 415, NULL, NULL);
+	    screen.fs_seek_display_image(imgFile, digit1[d1],  59, 415, NULL, NULL);
+	    screen.fs_seek_display_image(imgFile, colon,       95, 415, NULL, NULL);
+	    screen.fs_seek_display_image(imgFile, digit2[d2], 116, 415, NULL, NULL);
+	    screen.fs_seek_display_image(imgFile, digit3[d3], 153, 415, NULL, NULL);
 	}
 
 	protected:
@@ -95,4 +110,6 @@ class ScreenView {
 	                             digit2_5x0, digit2_6x0, digit2_7x0, digit2_8x0, digit2_9x0 };
 	unsigned long digit3[10] = { digit3_0x0, digit3_1x0, digit3_2x0, digit3_3x0, digit3_4x0,
 	                             digit3_5x0, digit3_6x0, digit3_7x0, digit3_8x0, digit3_9x0 };
+	unsigned long heart[10] = { health0, health1, health2, health3, health4,
+	                            health5, health6, health7, health8, health9 };
 };
