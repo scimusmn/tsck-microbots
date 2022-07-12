@@ -22,7 +22,7 @@ class DiabloSerial {
 		pinMode(reset_pin, OUTPUT);
 	}
 
-	reset() {
+	void reset() {
 		digitalWrite(reset_pin, 0);
 		delay(100);
 		digitalWrite(reset_pin, 1);
@@ -38,7 +38,7 @@ class DiabloSerial {
 
 	enum serial_result_t putstr(char *str) {
 		int len = strlen(str) + 1;
-		return send_command(0x0018, (byte) str, len);
+		return send_command(0x0018, (byte*) str, len);
 	}
 
 	enum serial_result_t printf(const char *format, ...) {
@@ -100,7 +100,7 @@ class DiabloSerial {
 
 	enum serial_result_t fs_close_file(word *handle, word *status) {
 		byte data[2];
-		split(handle, data+0, data+1);
+		split(*handle, data+0, data+1);
 
 		enum serial_result_t r = send_command(0xfe51, data, 2);
 		if (r != SR_OK) return r;
@@ -270,7 +270,7 @@ class DiabloSerial {
 	enum serial_result_t send_command(word command, byte *data, size_t n_bytes) {
 		empty_serial_buffer();
 		send_word(command);
-		for (int i=0; i<n_bytes; i++)
+		for (unsigned int i=0; i<n_bytes; i++)
 			serial.write(data[i]);
 		serial.flush();
 		return getack();
