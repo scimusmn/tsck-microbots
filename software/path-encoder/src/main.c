@@ -107,13 +107,13 @@ static float dist(struct point a, struct point b)
 
 static int get_closest(struct point pt, struct point *points, int n)
 {
-	float min_dist = 1000;
+	float min_dist = 100000;
 	int closest;
 	
 	for (int i=0; i<n; i++) {
 		/* ignore used points */
 		if (points[i].visited) continue;
-		
+
 		float d = dist(pt, points[i]);
 		if (d < min_dist) {
 			min_dist = d;
@@ -126,6 +126,9 @@ static int get_closest(struct point pt, struct point *points, int n)
 int get_path_points(struct point *path, struct image_t *img)
 {
 	struct point start, end, points[128];
+	for (int i=0; i<128; i++) {
+		points[i].x = 0; points[i].y = 0; points[i].visited = 0;
+	}
 	int n_points = 0;
 
 	/* scan image for points */
