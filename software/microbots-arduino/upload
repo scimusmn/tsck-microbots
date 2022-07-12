@@ -1,0 +1,2 @@
+#!/bin/bash
+arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 .

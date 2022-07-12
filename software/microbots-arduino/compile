@@ -1,0 +1,13 @@
+#!/bin/bash
+
+flags="-b arduino:avr:mega --warnings none ."
+
+if [ -z "$1" ]; then
+	# no mirroring
+	arduino-cli compile $flags
+elif [ "$1" == "--mirror" ]; then
+	# mirror! define MIRROR_TABLE
+	arduino-cli compile --build-property "build.extra_flags=\"-DMIRROR_TABLE\"" $flags
+else
+	echo "ERROR: bad argument '$1'; expected --mirror"
+fi

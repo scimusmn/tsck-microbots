@@ -46,6 +46,10 @@ class XYTable {
 	void init() {
 		XY_LOG("Homing X...");
 		xAxis.home();
+		/* move forward, to avoid dragging BBs along the wall */
+		xAxis.setSpeed(400);
+		while(xAxis.getSteps() < 1000) xAxis.update();
+		xAxis.setSpeed(0);
 		XY_LOG("Homing Y...");
 		yAxis.home();
 	}
