@@ -35,8 +35,8 @@ class MagnetMotor {
 
 class SimpleStepper {
 	public:
-	SimpleStepper(int pul, int dir, int ena)
-		: pul(pul), dir(dir), ena(ena), steps(0) {
+	SimpleStepper(int pul, int dir, int ena, bool inverted)
+		: pul(pul), dir(dir), ena(ena), inverted(inverted), steps(0) {
 		pinMode(pul, OUTPUT);
 		pinMode(dir, OUTPUT);
 		pinMode(ena, OUTPUT);
@@ -57,7 +57,10 @@ class SimpleStepper {
 	static const int FORWARD = 0;
 	static const int BACKWARD = 1;
 	void setDirection(int directionConstant) {
-		digitalWrite(dir, directionConstant);
+		if (inverted)
+			digitalWrite(dir, !directionConstant);
+		else
+			digitalWrite(dir, directionConstant);
 		direction = directionConstant == FORWARD ? 1 : -1;
 	}
 
@@ -76,7 +79,7 @@ class SimpleStepper {
 	}
 
 	protected:
-	bool enabled;
+	bool enabled, inverted;
 	int direction;
 
 	int pul, dir, ena;
@@ -114,8 +117,8 @@ class LimitSwitch : public Button {
 
 class Stepper : public SimpleStepper {
 	public:
-	Stepper(int pul, int dir, int ena, int limit) 
-		: SimpleStepper(pul, dir, ena), limit(limit), maxSteps(100000) {
+	Stepper(int pul, int dir, int ena, int limit, unsigned long maxSteps, bool inverted=false) 
+		: SimpleStepper(pul, dir, ena, inverted), limit(limit), maxSteps(maxSteps) {
 		stopped = true;
 		lastStepTime = micros();	
 	}
@@ -131,10 +134,6 @@ class Stepper : public SimpleStepper {
 		setDirection(stepsPerSecond < 0 ? SimpleStepper::BACKWARD : SimpleStepper::FORWARD);
 		stepsPerSecond = abs(stepsPerSecond);
 		timePerStep = 1000000/stepsPerSecond;
-	}
-
-	void setMaxSteps(int max) {
-		maxSteps = max;
 	}
 
 	void printPrefix() {
@@ -190,7 +189,7 @@ class Stepper : public SimpleStepper {
 
 	protected:
 	LimitSwitch limit;
-	int maxSteps;
+	unsigned long maxSteps;
 	unsigned long lastStepTime;
 	int timePerStep;
 	bool stopped;

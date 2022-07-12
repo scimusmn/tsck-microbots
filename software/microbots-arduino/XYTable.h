@@ -3,28 +3,44 @@
 #include <Arduino.h>
 #include "Motor.h"
 #include "CheckError.h"
+#include "Position.h"
 
 #define XY_LOG(msg) LOG("[XYTable] ", msg)
 
-#define Y_PUL 2
-#define Y_DIR 3
-#define Y_ENA 20
-#define Y_LIM 7 
+#define Y_PUL 3
+#define Y_DIR 4
+#define Y_ENA 5
+#define Y_LIM 9 
 
 #define X_PUL 24
 #define X_DIR 23
 #define X_ENA 22
-#define X_LIM 8
+#define X_LIM 10
 
 
 class XYTable {
 	protected:
 	Stepper xAxis, yAxis;
+	long xMax, yMax;
+
+	int _stepsToPixels(long x, long max) {
+		return 127 - ((128*x)/max);
+	}
+
+	int _pixelsToSteps(long x, long max) {
+		return max - ((max*x)/128);
+	}
 
 	public:
-	XYTable()
-		: xAxis(X_PUL, X_DIR, X_ENA, X_LIM),
-		  yAxis(Y_PUL, Y_DIR, Y_ENA, Y_LIM)
+	XYTable(long xMax, long yMax)
+		: xAxis(X_PUL, X_DIR, X_ENA, X_LIM, xMax
+#ifdef MIRROR_TABLE
+, true), /* invert x-axis */
+#else
+),       /* do not invert x-axis */
+#endif
+		  yAxis(Y_PUL, Y_DIR, Y_ENA, Y_LIM, yMax),
+		  xMax(xMax), yMax(yMax)
 	{}
 
 	void init() {
@@ -34,9 +50,31 @@ class XYTable {
 		yAxis.home();
 	}
 
-	void getPosition(long *x, long *y) {
-		*x = xAxis.getSteps();
-		*y = yAxis.getSteps();
+	Position getPosition() {
+		Position pos;
+		pos.x = xAxis.getSteps();
+		pos.y = yAxis.getSteps();
+		return pos;
+	}
+
+	Position toPixels(Position stepPos) {
+		Position pixelPos;
+		pixelPos.x = _stepsToPixels(stepPos.x, xMax);
+#ifdef MIRROR_TABLE
+		pixelPos.x = 127 - pixelPos.x;
+#endif
+		pixelPos.y = _stepsToPixels(stepPos.y, yMax);
+		return pixelPos;
+	}
+
+	Position toSteps(Position pixelPos) {
+		Position stepPos;
+		stepPos.x = _pixelsToSteps(pixelPos.x, xMax);
+#ifdef MIRROR_TABLE
+		stepPos.x = xMax - stepPos.x;
+#endif
+		stepPos.y = _pixelsToSteps(pixelPos.y, yMax);
+		return stepPos;
 	}
 
 	void setSpeed(int x, int y) {
@@ -50,11 +88,10 @@ class XYTable {
 	}
 
 	void moveTo(long x, long y, int speed) {
-		long currentX, currentY;
-		getPosition(&currentX, &currentY);
+		Position current = getPosition();
 
-		int dx = x - currentX;
-		int dy = y - currentY;
+		int dx = x - current.x;
+		int dy = y - current.y;
 
 		/* determine directions */
 		int xSpeed = speed;
@@ -63,7 +100,7 @@ class XYTable {
 		if (dy < 0) ySpeed = -speed;
 
 		Serial.print("[XYTable] Start position: (");
-		Serial.print(currentX); Serial.print(", "); Serial.print(currentY); Serial.println(")");
+		Serial.print(current.x); Serial.print(", "); Serial.print(current.y); Serial.println(")");
 
 		Serial.print("[XYTable] Target position: (");
 		Serial.print(x); Serial.print(", "); Serial.print(y); Serial.println(")");
@@ -91,7 +128,7 @@ class XYTable {
 		xAxis.setSpeed(xSpeed);
 		yAxis.setSpeed(ySpeed);
 		XY_LOG("Stepping together");
-		while (abs(dx) > 10) {
+		while (abs(dx) > 2) {
 			xAxis.update(); yAxis.update();
 			dx = x - xAxis.getSteps();
 			dy = y - yAxis.getSteps();

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "DiabloSerial.h"
 #include "CheckError.h"
+#include "Position.h"
 
 #define PATH_CHECK_ERR(r) CHECK_ERROR("Path: ", r)
 #define PATH_LOG(msg) LOG("[Path] ", msg)
@@ -90,11 +91,14 @@ class Path {
 		return n_points;
 	}
 
-	PathPoint getPathPoint(int index) {
+	Position getPoint(int index) {
 		if (index < 0) {
 			index = n_points - index;
 		}
-		return path[index];
+		Position pos;
+		pos.x = path[index].x;
+		pos.y = path[index].y;
+		return pos;
 	}
 
 	int isObstructed(int x, int y) {

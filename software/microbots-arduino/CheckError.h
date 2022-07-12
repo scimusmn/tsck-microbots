@@ -9,5 +9,5 @@ if (r != DiabloSerial::serial_result_t::SR_OK) { \
 	Serial.println(__LINE__); \
 	Serial.print("serial error: "); \
 	Serial.println(r); \
+	return false; \
 }
-
