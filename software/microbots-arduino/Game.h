@@ -93,6 +93,11 @@ class GameModel {
 	}
 
 	int isObstructed(Position pixelPos) {
+		if (pixelPos.x < 0 || pixelPos.x > 127 ||
+		    pixelPos.y < 0 || pixelPos.y > 127) {
+			// position out of range
+			return 1;
+		}
 		return path.isObstructed(pixelPos.x, pixelPos.y);
 	}
 
