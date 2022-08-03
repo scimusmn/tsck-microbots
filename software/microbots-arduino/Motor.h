@@ -164,7 +164,7 @@ class Stepper : public SimpleStepper {
 
 		/* check if we should step */
 		if (limit.isTriggered() && direction == -1) return; // don't do anything else if we're running into the limit switch
-		if (steps >= maxSteps && direction == 1) return; // don't step if we'd pass maxSteps
+		if (steps > 0 && steps >= maxSteps && direction == 1) return; // don't step if we'd pass maxSteps
 		if ((micros() - lastStepTime) > timePerStep) {
 			lastStepTime += timePerStep;
 			step();
