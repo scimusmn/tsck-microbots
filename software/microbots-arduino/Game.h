@@ -1,5 +1,7 @@
 #pragma once
 
+#define MIRROR_TABLE
+
 #include <Arduino.h>
 #include "offsets.h"
 #include "DiabloSerial.h"
@@ -18,7 +20,7 @@
 
 /* space constants */
 #define STEPS_X 17500
-#define STEPS_Y 14975
+#define STEPS_Y 14700
 
 /* motor constants */
 #define MAGNET_A 7
@@ -77,7 +79,7 @@ class GameModel {
 
 	void startGame() {
 		gameState = PLAYING;
-		health = 8;
+		health = 9;
 		startTime = millis();
 		alertNote = Note::C;
 	}
@@ -173,31 +175,11 @@ class GameController {
 
 	void updatePlaying() {
 		joy.update();
-		Position stepPos = table.getPosition();
-		Position pixelPos = table.toPixels(stepPos);
+		Position steps = table.getPosition();
+		Position pixels = table.toPixels(steps);
 
-
-		GC_LOG("Home axes");
-		magnets.runRight();
-		table.init();
-
-		GC_LOG("Go to start");
-		PathPoint start = model.getPathPoint(0);
-		table.moveTo(pixelsToSteps(start.x, STEPS_X), pixelsToSteps(start.y, STEPS_Y), 400);
-		magnets.stop();
-
-		GC_LOG("Init complete");
-	}
-
-	void updatePlaying() {
-		joy.update();
-		long x, y;
-		table.getPosition(&x, &y);
-		x = stepsToPixels(x, STEPS_X);
-		y = stepsToPixels(y, STEPS_Y);
-
-		PathPoint end = model.getEndPoint();
-		if (sq(x - end.x) + sq(y - end.y) < 4) {
+		Position end = model.getEndPoint();
+		if (distance(pixels, end) < 4) {
 			magnets.stop();
 			screenView.displaySuccessScreen();
 			buzzer.playSong(winningSong, N_NOTES(winningSong));
@@ -224,7 +206,7 @@ class GameController {
 		}
 
 		static bool beeping = false;
-		if (model.isObstructed(x, y)) {
+		if (model.isObstructed(pixels)) {
 			if (!beeping) {
 				buzzer.play(Note::E);
 				beeping = true;
@@ -237,7 +219,7 @@ class GameController {
 			}
 		}
 
-		if (updateHealth.triggered() && model.isObstructed(x, y)) {
+		if (updateHealth.triggered() && model.isObstructed(pixels)) {
 			model.reduceHealth();
 			screenView.displayHealth(model.getHealth());
 		}
@@ -267,7 +249,11 @@ class GameController {
 			else magnets.stop();
 			
 			int vx = getMotorSpeed(dir, Joystick::LEFT, Joystick::RIGHT);
+			#ifdef MIRROR_TABLE
+			vx = -vx;
+			#endif
 			int vy = getMotorSpeed(dir, Joystick::UP, Joystick::DOWN);
+			Serial.print(vx); Serial.print(", "); Serial.println(vy);
 			table.setSpeed(vx, vy);
 		}
 		/* update motors */
@@ -277,8 +263,7 @@ class GameController {
 	void startGame() {
 		model.startGame();
 		screenView.displayBackground();
-		screenView.displayHeart();
-		screenView.displayHealth(8);
+		screenView.displayHealth(9);
 		screenView.displayDigits(0, 0, 0, 0);
 		updateTimeView.start();
 		updateHealth.start();
@@ -291,17 +276,14 @@ class GameController {
 	}
 
 	void updateReset() {
-		long x, y;
-		table.getPosition(&x, &y);
-		x = stepsToPixels(x, STEPS_X);
-		y = stepsToPixels(y, STEPS_Y);
+		Position steps = table.getPosition();
+		Position current = table.toPixels(steps);
 
 		GC_LOG("Find closest path point");
-		PathPoint current = { x, y };
 		int closest = 0;
-		int minDist = 10000;
+		unsigned int minDist = 100000;
 		for (int i=0; i<model.getNumPoints(); i++) {
-			PathPoint pt = model.getPathPoint(i);
+			Position pt = model.getPoint(i);
 			int dist = distance(current, pt);
 			Serial.print(i); Serial.print(" ");
 			Serial.print("("); Serial.print(pt.x); Serial.print(", "); Serial.print(pt.y); Serial.print("): ");
@@ -317,10 +299,11 @@ class GameController {
 		Serial.println(closest);
 		magnets.runRight();
 		for (int i=closest; i>=0; i--) {
-			PathPoint pt = model.getPathPoint(i);
+			Position pt = model.getPoint(i);
 			Serial.print("[GameController] Next path point: (");
 			Serial.print(pt.x); Serial.print(", "); Serial.print(pt.y); Serial.println(")");
-			table.moveTo(pixelsToSteps(pt.x, STEPS_X), pixelsToSteps(pt.y, STEPS_Y), 800);
+			pt = table.toSteps(pt);
+			table.moveTo(pt.x, pt.y, 800);
 		}
 		magnets.stop();
 
@@ -357,3 +340,19 @@ class GameController {
 	DiabloSerial screen;
 	Joystick joy;
 	Buzzer buzzer;
+	IntervalTimer updateTimeView, updateHealth, updateTouch;
+	bool moving;
+
+	int getMotorSpeed(int dir, int pos, int neg) {
+		if ((!(dir & pos)) && (!(dir & neg))) {
+			// neither direction is pressed
+			return 0;
+		}
+		else if (dir & pos) {
+			return 800;
+		}
+		else {
+			return -800;
+		}
+	}
+};
