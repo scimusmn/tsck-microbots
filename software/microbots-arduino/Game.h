@@ -1,7 +1,5 @@
 #pragma once
 
-#define MIRROR_TABLE
-
 #include <Arduino.h>
 #include "offsets.h"
 #include "DiabloSerial.h"
