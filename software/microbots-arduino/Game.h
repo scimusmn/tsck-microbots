@@ -17,8 +17,8 @@
 #define SERIAL Serial1
 
 /* space constants */
-#define STEPS_X 17500
-#define STEPS_Y 14700
+#define STEPS_X 18000
+#define STEPS_Y 14500
 
 /* motor constants */
 #define MAGNET_A 7
@@ -148,7 +148,7 @@ class GameController {
 		  screenView(screen), 
 		  magnets(MAGNET_A, MAGNET_B),
 		  joy(JOY_UP, JOY_RIGHT, JOY_DOWN, JOY_LEFT),
-		  updateTimeView(1000), updateHealth(1000), updateTouch(200),
+		  updateTimeView(1000), updateHealth(1000), updateTouch(200), gameTimeout(60000),
 		  buzzer(BUZZER_PIN),
 		  moving(false),
 		  table(STEPS_X, STEPS_Y)
@@ -201,6 +201,12 @@ class GameController {
 			}
 		}
 
+		if (gameTimeout.triggered()) {
+			screenView.displayResetScreen();
+			model.gameState = GameModel::GameState::RESETTING;
+			return;
+		}
+
 		if (updateTimeView.triggered()) {
 			// update time display
 			int min, sec;
@@ -240,6 +246,7 @@ class GameController {
 
 
 		if (joy.hasChanged()) {
+			gameTimeout.start();
 			int dir = joy.getDirection();
 			if (dir != 0) moving = true;
 			else moving = false;
@@ -256,7 +263,7 @@ class GameController {
 			vx = -vx;
 			#endif
 			int vy = getMotorSpeed(dir, Joystick::UP, Joystick::DOWN);
-			Serial.print(vx); Serial.print(", "); Serial.println(vy);
+			Serial.print(steps.x); Serial.print(", "); Serial.println(steps.y);
 			table.setSpeed(vx, vy);
 		}
 		/* update motors */
@@ -271,6 +278,7 @@ class GameController {
 		updateTimeView.start();
 		updateHealth.start();
 		updateTouch.start();
+		gameTimeout.start();
 	}
 
 	void updateAttract() {
@@ -279,6 +287,7 @@ class GameController {
 	}
 
 	void updateReset() {
+		buzzer.quiet();
 		Position steps = table.getPosition();
 		Position current = table.toPixels(steps);
 
@@ -343,7 +352,7 @@ class GameController {
 	DiabloSerial screen;
 	Joystick joy;
 	Buzzer buzzer;
-	IntervalTimer updateTimeView, updateHealth, updateTouch;
+	IntervalTimer updateTimeView, updateHealth, updateTouch, gameTimeout;
 	bool moving;
 
 	int getMotorSpeed(int dir, int pos, int neg) {
